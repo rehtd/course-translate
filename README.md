@@ -13,14 +13,14 @@ git clone https://github.com/rehtd/course-translate.git
 
 ---
 
-## 同学怎么开始
+## 怎么开始
 
 1. 一台 **macOS 13+** 电脑（Windows 还不能当稳定上课机）。
 2. 安装 **Python 3.11 或更高**（macOS 自带的 3.9 不够）。
-3. 自己去 [DeepSeek 控制台](https://platform.deepseek.com/usage) 申请 API Key（不要用别人的）。
+3. 去 [DeepSeek 控制台](https://platform.deepseek.com/usage) 申请 API Key（不要用别人的）。
 4. 把**下面整段提示词**复制发给你的编码 Agent（Cursor、Claude Code、Copilot 等都可以），让它按仓库文档装并带着你点界面。
 
-人不用 Agent 时的步骤见 [docs/USAGE.md](docs/USAGE.md)「最短路径」。Agent 装好之后怎么上课，见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。
+不用 Agent 时的步骤见 [docs/USAGE.md](docs/USAGE.md)「最短路径」。Agent 装好之后怎么上课，见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。
 
 ---
 
@@ -29,7 +29,7 @@ git clone https://github.com/rehtd/course-translate.git
 同一份也在 [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md)。
 
 ```
-你是编码助手，不限产品。请按这个公开仓库帮我在本机装好「同传课堂」，并按手册带着我点界面上课。
+你是编码助手。请按这个公开仓库帮我在本机装好「同传课堂」，并按手册带着我点界面上课。
 
 仓库：https://github.com/rehtd/course-translate.git
 产品：麦克风 → 本地 Whisper → 翻译 → 主窗口上英下中 + 底部英文悬浮字幕。课后可写入 Obsidian。
@@ -40,7 +40,7 @@ git clone https://github.com/rehtd/course-translate.git
 3. docs/AGENT_GUIDE.md（有哪些操作、怎么带我点界面；先读操作总表）
 
 硬性约束：
-- 不要 git add .。不要 git push 到 origin（只有仓库主人能推；我是同学/旁人）。
+- 不要 git add .。不要 git push 到 origin。
 - 不要打开、复述、覆盖已有 .env；不要把 API Key 写进仓库、聊天或别的文件。
 - 本地没有 .env 则执行：cp .env.example .env ，然后立刻停下来，让我自己去 https://platform.deepseek.com/usage 创建 Key，填进 .env 的 DEEPSEEK_API_KEY。等我说已经填好再继续。不要代填。
 - 不要提交、不要分发：.env、data/、录音、*.wav、*.m4a、数据库、本机 settings.json。
@@ -65,7 +65,7 @@ git clone https://github.com/rehtd/course-translate.git
 
 ---
 
-## 人要自己做的（Agent 不会代劳）
+## 要自己做的（Agent 不会代劳）
 
 | 事项 | 去哪 |
 |------|------|
@@ -82,9 +82,8 @@ git clone https://github.com/rehtd/course-translate.git
 |------|------|------|
 | DeepSeek | 课堂中文最顺；吃术语表和上下文 | 要联网、按量计费 |
 | 阿里百炼 Qwen | 也吃术语表；常有免费额度 | 另申请 Key；质量通常不如 DeepSeek 稳 |
-| Ollama | 可断网；吃术语表 | 要自己起服务；Mac 上往往偏慢 |
 | 百度 / 阿里机器翻译 | 快、有免费额度 | 不吃术语表；课名/人名易乱译 |
-| 腾讯云 | — | 待修，课上不要选 |
+| 腾讯云 | — 500w额度，无需多言
 
 不要提交 `.env`、`data/`、录音；不要 `git add .`；不要 `git push`。
 
