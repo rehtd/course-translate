@@ -2,7 +2,7 @@
 
 给任意编码助手：引导使用者完成同传课堂的安装和使用。不限 Cursor / Claude Code / Copilot / Windsurf / Cline 等。
 
-安装细节（venv、`.env`、禁令）以 [USAGE.md](USAGE.md) 为准。**本文只列「有哪些操作」以及你该怎么带着用户做。**
+同学应先把 [AGENT_PROMPT.md](AGENT_PROMPT.md)（与 GitHub 首页同一段）整段发给你。安装细节（venv、`.env`、禁令）以 [USAGE.md](USAGE.md) 为准。**本文只列「有哪些操作」以及你该怎么带着用户做。**
 
 原则：
 
@@ -72,7 +72,7 @@
 
 | 用户说 | 做 |
 |--------|----|
-| 帮我装 / 打不开 | A1–A5，见 USAGE.md |
+| 帮我装 / 打不开 | A1–A5，见 USAGE.md。若用户没给仓库地址，先让他复制 README 里的提示词 |
 | 帮我推到 GitHub / push | 拒绝。不要 `git push` |
 | 没有 Key / 弹缺少 DEEPSEEK | A3，停下来等用户自己填 |
 | 没声音 / 识别不到 | A4，然后确认选对了课程再新建一节 |
@@ -99,6 +99,14 @@
 按 [USAGE.md](USAGE.md) 第 1–5 步。用户填 Key 时你停住。启动成功：出现「同传课堂」窗口，状态栏类似「就绪 · 选择课程后点击新建一节课」。
 
 第一次识别会下载 Whisper，可能要几分钟。失败看窗口状态栏或 `data/app.log`（不要把日志里的路径当 Key 发出去）。
+
+常见卡住：
+
+- `python3` 是 3.9：停下来让用户先装 3.11+（python.org 或 Homebrew），不要用系统 Python 建 venv。
+- 弹缺少 `DEEPSEEK_API_KEY`：回到 USAGE 第 3 步，等用户自己填。不要代填、不要 `cat .env`。
+- Finder 双击 `.command` 打不开：让用户右键 → 打开；或改用终端 `source .venv/bin/activate && python main.py`。
+- 没声音 / 开录失败：麦克风权限；勾完后**完全退出再打开**。
+- 切到 PPT 后字幕不见了：确认 `pip install -r requirements.txt` 已装完（含 `pyobjc-framework-Cocoa`）；菜单「字幕」可再显示。
 
 ### A6. 设置
 

@@ -4,7 +4,7 @@
 
 仓库是公开的：`git clone https://github.com/rehtd/course-translate.git`。任何人都能拉，**不要 `git push`**（只有仓库主人能推）。
 
-对编码 Agent 说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。不要做成安装包给人下载。
+同学：把 [README](../README.md) 或 [AGENT_PROMPT.md](AGENT_PROMPT.md) 里的提示词**整段**发给编码 Agent，不要只说「帮我装一下」。人准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。不要做成安装包给人下载。不要拷贝别人的 `.env` / `.venv` / `data/`。
 
 ---
 

@@ -1,32 +1,10 @@
-# 同传课堂（course-translate）
+# 发给编码 Agent 的提示词
 
-课堂实时同传：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可整理进 Obsidian。
+同学：打开本仓库 GitHub 页，把下面代码块**整段复制**发给 Cursor / Claude Code / Copilot 等任意能读仓库、跑终端的助手。不要只说「帮我装一下」却不给仓库地址。
 
-- **录制中**：主区上英文、下中文两个大框（译文可以慢几秒）。悬浮字幕只跟英文。
-- **回看**：一句一块上英下中，双击回听。课间用**暂停**，不要点结束。
-
-公开仓库，任何人都能克隆。**不要 `git push`**（只有仓库主人能推）。不要拷贝别人的 `.env`。
-
-```bash
-git clone https://github.com/rehtd/course-translate.git
-```
+人自己准备：macOS 13+、Python 3.11+（系统自带 3.9 不够）、自己的 DeepSeek Key、麦克风权限。不要拷贝别人的 `.env` / `.venv` / `data/`。
 
 ---
-
-## 同学怎么开始
-
-1. 一台 **macOS 13+** 电脑（Windows 还不能当稳定上课机）。
-2. 安装 **Python 3.11 或更高**（macOS 自带的 3.9 不够）。
-3. 自己去 [DeepSeek 控制台](https://platform.deepseek.com/usage) 申请 API Key（不要用别人的）。
-4. 把**下面整段提示词**复制发给你的编码 Agent（Cursor、Claude Code、Copilot 等都可以），让它按仓库文档装并带着你点界面。
-
-人不用 Agent 时的步骤见 [docs/USAGE.md](docs/USAGE.md)「最短路径」。Agent 装好之后怎么上课，见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。
-
----
-
-## 发给 Agent 的提示词（整段复制）
-
-同一份也在 [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md)。
 
 ```
 你是编码助手，不限产品。请按这个公开仓库帮我在本机装好「同传课堂」，并按手册带着我点界面上课。
@@ -62,18 +40,3 @@ git clone https://github.com/rehtd/course-translate.git
 
 现在从确认环境 / 克隆 / 建虚拟环境开始。Key 和麦克风权限由我自己做。
 ```
-
----
-
-## 人要自己做的（Agent 不会代劳）
-
-| 事项 | 去哪 |
-|------|------|
-| DeepSeek API Key | [用量与控制台](https://platform.deepseek.com/usage) → 创建 Key → 写入本地 `.env` |
-| 其它翻译引擎（可选） | [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
-| 麦克风 | 系统设置 → 隐私与安全性 → 麦克风 |
-| Obsidian 笔记库 | 应用内「⚙ 设置」（不选则「计入笔记」写不进去） |
-
-不要提交 `.env`、`data/`、录音；不要 `git add .`；不要 `git push`。
-
-本机数据只在你电脑上的 `data/`（Git 忽略）。换电脑不会自动带上课节和录音。

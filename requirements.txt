@@ -6,4 +6,5 @@ silero-vad
 onnxruntime
 requests
 PySide6
+pyobjc-framework-Cocoa
 pypdf

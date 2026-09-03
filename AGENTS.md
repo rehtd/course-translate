@@ -2,6 +2,8 @@
 
 你是编码助手即可，不限产品。
 
+同学把 GitHub 首页或 [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md) 里的提示词整段发给你之后：
+
 - 安装、Key、禁令：[docs/USAGE.md](docs/USAGE.md)
 - **有哪些操作、怎么带着用户点界面：[docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)**（先读操作总表）
 
