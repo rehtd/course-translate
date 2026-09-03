@@ -9,9 +9,11 @@
 
 ## 环境
 
-- macOS（目前悬浮窗层级用了 AppKit；Windows 适配见 [docs/WINDOWS.md](docs/WINDOWS.md)）
+- macOS（目前悬浮窗层级用了 AppKit）
 - Python 3.11+
 - `.env` 里至少要有 `DEEPSEEK_API_KEY`（笔记 / 术语提取始终走 DeepSeek）
+
+**Windows**：代码还没改完，先看 [docs/WINDOWS.md](docs/WINDOWS.md)（要注意什么、改哪四处、不要动识别翻译）。适配请开分支 `feat/windows`。
 
 ## 安装（macOS）
 
