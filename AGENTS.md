@@ -13,4 +13,5 @@
 2. 不要 `git add .`。不要打开或复述用户已有的 `.env`。
 3. 不要把别人的 API Key 写进这个仓库。让使用者自己去 [DeepSeek 控制台](https://platform.deepseek.com/usage) 创建 Key。阿里/百度/腾讯等可参考 [这篇申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385)。
 4. 若本地已有 `.env`，不要覆盖。没有则 `cp .env.example .env`，然后停下来让用户自己填 Key。
-6. **同学的 Agent 不要 `git push` 到 origin**（https://github.com/rehtd/course-translate）。这个仓库只读协作；本地 `.env` 和 `data/` 也不会进 Git。
+5. 同学和旁人的 Agent **不要 `git push`**。本地 `.env` 和 `data/` 也不会进 Git。
+6. macOS 可以上课。Windows 还不能当稳定上课机。

@@ -2,11 +2,9 @@
 
 同传课堂：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可写入 Obsidian。
 
-仓库是私有的。克隆前需要被加为 GitHub collaborator，**权限选 Read（只读）**，不要给 Write。同学只能 `git pull` / `git clone`，**不能、也不要** `git push` 到这个仓库。
+仓库是公开的：`git clone https://github.com/rehtd/course-translate.git`。任何人都能拉，**不要 `git push`**（只有仓库主人能推）。
 
-**推荐分发方式：** 把人加进私有仓库（Read），让他们用自己习惯的编码 Agent 打开本仓库，说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人只需要准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。
-
-不做成 .dmg / .exe 给人下载。Whisper 模型大、每人要自己的 Key、Windows 还没改完；克隆 + Agent 比打包安装包合适。
+对编码 Agent 说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。不要做成安装包给人下载。
 
 ---
 
@@ -18,8 +16,6 @@
 - 只允许出现在你电脑上的 `.env`。仓库里的 `.env.example` 全是占位符。
 - **不要**拷贝别人的 `.env`，**不要**把 `.env` 发给别人或推进 Git。
 
-同学 Agent：**不要** `git push`、**不要** `git push -u origin`。本仓库只接受仓库主人推送。本地改 `.env`、`data/` 本来也不会进 Git。
-
 ---
 
 ## Agent 操作流程
@@ -30,7 +26,7 @@
 
 ### 1. 确认环境
 
-- 系统：macOS 13+（上课主路径）。Windows 先读 [WINDOWS.md](WINDOWS.md)，不要按 Mac 启动器走。
+- 系统：macOS 13+（上课主路径）。Windows 还不能当稳定上课机，不要用 Mac 启动器。
 - `python3 --version` 为 **3.11 或更高**。系统自带 3.9 不够。
 - 仓库根目录要有 `main.py`。
 
@@ -61,7 +57,7 @@ cp .env.example .env
 
 若 **已经存在** `.env`：不要覆盖、不要 `cat .env`、不要把内容写进聊天或 commit。
 
-其它翻译引擎（百炼 / 百度 / 腾讯 / 阿里 / Ollama）可以后再填。上课建议 DeepSeek。腾讯在设置里仍标「待修」，课上不要选。
+其它翻译引擎可以后再填。上课建议 DeepSeek。腾讯在设置里标了待修，课上不要选。
 
 ### 4. 麦克风
 
@@ -78,11 +74,11 @@ source .venv/bin/activate
 python main.py
 ```
 
-或在 Finder 双击仓库根目录的 `启动同传课堂.command`（启动器会找 `.venv`，不写死某台机器的路径）。
+或在 Finder 双击仓库根目录的 `启动同传课堂.command`。
 
-若弹「未找到 DEEPSEEK_API_KEY」，回到第 3 步，不要用别人的 Key 凑合。
+若弹「未找到 DEEPSEEK_API_KEY」，回到第 3 步。
 
-第一次识别会下载 Whisper 模型（体积大，缓存在用户目录，例如 `~/.cache`）。连校园网或先下完再上课。
+第一次识别会下载 Whisper 模型（体积大，缓存在用户目录）。连校园网或先下完再上课。
 
 可选：设置里指定 **Obsidian 库根目录**，课后「计入笔记」才写得进去。
 
@@ -104,22 +100,9 @@ python main.py
 
 ### 8. Agent 禁止做的事
 
-- `git add .`、`git add data`、`git add .env`、提交 wav/m4a/db。
-- **`git push` / `git push -u origin` 到 https://github.com/rehtd/course-translate**（同学只读；不要帮他们推）。
-- 把使用者 Key 写进 README、issue、PR、聊天记录。
-- 为了「方便测试」把真实 `.env` 拷到另一台机器。
-- 改上课识别/切句/翻译核心来「顺便」修 Windows（Windows 开 `feat/windows`）。
-- 把 115 网盘或本机 `data/audio` 里的课堂录音推进 Git。
-
-改代码后至少（macOS）：
-
-```bash
-export QT_QPA_PLATFORM=offscreen
-export DEEPSEEK_API_KEY=sk-test-dummy
-python tests/test_mainwindow_smoke.py
-```
-
-需要提交时（**仅仓库主人**）：先 `git status`，确认没有 `.env` / `data/` / 音频，再按路径 `git add`。规范见 [REPO.md](REPO.md)。同学不要提交、不要 push。
+- `git add .`、提交 `.env` / `data/` / 录音，以及 **`git push` 到这个仓库**。
+- 把使用者 Key 写进聊天或文件。不要覆盖已有 `.env`。
+- 不要把应用打成安装包。不要重写识别/翻译来「修 Windows」。
 
 ---
 
@@ -139,29 +122,6 @@ cp .env.example .env
 
 ## 本机数据在哪
 
-全部在仓库下的 `data/`（Git 忽略）：
+全部在仓库下的 `data/`（Git 忽略）：转写库、录音、课件 PDF、本机设置。换电脑不会自动带上。录音不要进 Git。
 
-- `subtitle.db` 课程/课节/转写
-- `audio/` 录音
-- `materials/` 上传的 PDF
-- `settings.json` 本机 Obsidian 路径等
-
-换电脑不会自动带上这些。录音不要进 Git。
-
----
-
-## Windows
-
-代码还没改完，不能当稳定上课机。要测回看：自己录音，或用网盘夹具（不在 Git 里）按夹具 README 放到 `data/`。实时字幕请对着麦克风说几句。适配说明：[WINDOWS.md](WINDOWS.md)。
-
----
-
-## 不要做成安装包
-
-现在不要 PyInstaller、不要公证过的 `.app` / `.exe` 分发。原因：
-
-- 识别模型在用户目录缓存，安装包会到几百 MB～1 GB+，还要处理签名和系统麦克风权限。
-- 每人必须自己有 DeepSeek Key，装包也躲不开填 `.env`。
-- 上课机目前只有 macOS 主路径完整。
-
-发给同学：加 GitHub 协作 → 克隆 → 对任意编码 Agent 说按本文安装。
+Windows 还不能当稳定上课机；实时请对着麦克风说几句。

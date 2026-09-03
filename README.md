@@ -5,9 +5,13 @@
 - **录制中**：主区上英文、下中文两个大框（独立滚动；翻译可以慢几秒）。悬浮字幕只跟英文。
 - **回看**：一句一块，上英下中；双击回听。课间用暂停，不要点结束。
 
-安装、上课逐步点哪里：任意编码 Agent 读 **[docs/USAGE.md](docs/USAGE.md)**（安装）和 **[docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)**（操作总表 + 怎么引导用户）。不做成安装包给人下载。
+安装、上课：任意编码 Agent 读 **[docs/USAGE.md](docs/USAGE.md)** 和 **[docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)**。
 
-每人使用 **自己申请的** DeepSeek Key，填进本地 `.env`。不要拷贝别人的 `.env`，不要把 `.env` 推进 Git。
+```bash
+git clone https://github.com/rehtd/course-translate.git
+```
+
+每人使用 **自己申请的** DeepSeek Key，填进本地 `.env`。不要拷贝别人的 `.env`，不要 `git push`。
 
 ## 环境
 
@@ -15,11 +19,9 @@
 - Python 3.11+
 - 自己的 `DEEPSEEK_API_KEY`（[控制台](https://platform.deepseek.com/usage)）
 
-**Windows**：还不能当稳定上课机，见 [docs/WINDOWS.md](docs/WINDOWS.md)。适配请开分支 `feat/windows`。
+**Windows**：还不能当稳定上课机（macOS 为主）。
 
-## 仓库纪律
-
-见 [docs/REPO.md](docs/REPO.md)。摘要：永不提交 `.env`、`data/`、录音；不要 `git add .`。
+不要提交 `.env`、`data/`、录音；不要 `git add .`；不要 `git push`。
 
 ## 上课怎么用
 
