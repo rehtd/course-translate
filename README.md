@@ -5,7 +5,7 @@
 - **录制中**：主区上英文、下中文两个大框（独立滚动；翻译可以慢几秒）。悬浮字幕只跟英文。
 - **回看**：一句一块，上英下中；双击回听。课间用暂停，不要点结束。
 
-安装、上课、课后，以及 **让 Cursor Agent 代为安装的步骤**，见 **[docs/USAGE.md](docs/USAGE.md)**。
+安装、上课、课后，以及 **让任意编码 Agent 代为安装的步骤**，见 **[docs/USAGE.md](docs/USAGE.md)**（Cursor / Claude Code / Copilot / Windsurf / Cline 等均可）。不做成安装包给人下载。
 
 每人使用 **自己申请的** DeepSeek Key，填进本地 `.env`。不要拷贝别人的 `.env`，不要把 `.env` 推进 Git。
 
