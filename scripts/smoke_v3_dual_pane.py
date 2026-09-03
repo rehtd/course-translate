@@ -51,6 +51,22 @@ sb = win.zh_box.verticalScrollBar()
 assert sb.value() == sb.maximum(), "未自动滚底"
 print(f"[OK] zh_box 累积 {len(txt)} 字符，已滚底")
 
+win.zh_box.setFixedHeight(140)
+for i in range(30):
+    win._append_zh(f"用来撑出滚动条的第 {i} 句译文。")
+app.processEvents()
+sb = win.zh_box.verticalScrollBar()
+assert sb.maximum() > 0, "应出现滚动条"
+sb.setValue(0)
+app.processEvents()
+assert win._zh_sticky is False, "滚到顶部后不应再跟随"
+held = sb.value()
+win._append_zh("新来的一句不应该把我拉走")
+app.processEvents()
+assert sb.value() <= held + 8, f"看历史时被拉走: {held} -> {sb.value()}"
+print("[OK] zh_box 往上翻看时新句不拉回底部")
+win.zh_box.setFixedHeight(16777215)  # 取消测试用固定高度
+
 # ---- 3: partial 英文-only ----
 win._upsert_partial("the professor is explaining", "")
 assert win._partial_card is not None, "partial 卡未创建"

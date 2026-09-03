@@ -434,6 +434,12 @@ class MainWindow(QMainWindow):
             "英文原文", "句子定稿后，英文原文按顺序累积在这里…", mono=True)
         self.zh_panel, self.zh_box = _make_box(
             "中文译文", "句子定稿后，中文译文按顺序累积在这里…")
+        self._en_sticky = True
+        self._zh_sticky = True
+        self.en_box.verticalScrollBar().valueChanged.connect(
+            lambda _v: self._on_box_scrolled(self.en_box, "_en_sticky"))
+        self.zh_box.verticalScrollBar().valueChanged.connect(
+            lambda _v: self._on_box_scrolled(self.zh_box, "_zh_sticky"))
         self.right_split = QSplitter(Qt.Vertical)
         self.right_split.addWidget(self.en_panel)
         self.right_split.addWidget(self.zh_panel)
@@ -545,6 +551,8 @@ class MainWindow(QMainWindow):
         # 新会话/切课/加载历史后默认回到底部跟随；_load_session 末尾 scrollToTop
         # 会经 valueChanged 把 sticky 翻转为 False，不影响「看历史不打扰」
         self._transcript_sticky = True
+        self._en_sticky = True
+        self._zh_sticky = True
 
     def _drop_placeholder(self):
         if self._placeholder_item is not None:
@@ -579,19 +587,28 @@ class MainWindow(QMainWindow):
                 self._append_zh(zh)
         return item, card
 
+    def _on_box_scrolled(self, box, flag: str):
+        """英/中积累框：停在底部则跟随新句，滚上去看前面则不拉回。"""
+        sb = box.verticalScrollBar()
+        setattr(self, flag, sb.maximum() - sb.value() < 24)
+
     def _append_en(self, en):
-        """右侧英文原文累积区：只追加，带空行分隔，自动滚到底。"""
-        self.en_box.appendPlainText(en)
-        self.en_box.appendPlainText("")
-        sb = self.en_box.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        """右侧英文原文累积区：只追加，带空行分隔。在底部才跟滚。"""
+        self._append_follow(self.en_box, en, "_en_sticky")
 
     def _append_zh(self, zh):
-        """右侧中文译文累积区：只追加，带空行分隔，自动滚到底。"""
-        self.zh_box.appendPlainText(zh)
-        self.zh_box.appendPlainText("")
-        sb = self.zh_box.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        """右侧中文译文累积区：只追加，带空行分隔。在底部才跟滚。"""
+        self._append_follow(self.zh_box, zh, "_zh_sticky")
+
+    def _append_follow(self, box, text: str, flag: str):
+        # 先记下是否在底部。appendPlainText 会把光标放到文末并滚到底，
+        # 若不先记下，往上翻看时也会被当成「在底部」拽回去。
+        follow = getattr(self, flag)
+        sb = box.verticalScrollBar()
+        old = sb.value()
+        box.appendPlainText(text)
+        box.appendPlainText("")
+        sb.setValue(sb.maximum() if follow else old)
 
     def _add_marker_card(self, kind, note, t):
         self._drop_placeholder()
@@ -942,6 +959,8 @@ class MainWindow(QMainWindow):
         for box in (self.en_box, self.zh_box):
             sb = box.verticalScrollBar()
             sb.setValue(sb.maximum())
+        self._en_sticky = True
+        self._zh_sticky = True
 
     def _show_overlay(self):
         if self.bar is None:
