@@ -15,7 +15,7 @@ from app.storage import Store
 
 _CHUNK_CHARS = 12000
 
-SYSTEM_PROMPT = """你是研究生课程「{course}」的笔记整理 Agent。输入是课堂英文转写（相对开课的 [mm:ss] + 原文，以及用户打点）。
+SYSTEM_PROMPT = """你是研究生课程「{course}」的笔记整理 Agent。输入是课堂英中对照转写（相对开课的 [mm:ss]、英文原文、中文译文，以及用户打点）。中文译文供理解，英文专有名词以原文为准；译文若明显错了，以英文为准并在存疑里标出。
 
 先分辨三类，只根据课堂内容产出 JSON（不要寒暄、设备调试、ASR 胡话；不要「已忽略」清单）：
 - 课堂内容：知识、方法、案例、公式、作业、答疑 → 保留
@@ -49,6 +49,7 @@ SYSTEM_PROMPT = """你是研究生课程「{course}」的笔记整理 Agent。�
 - 只根据转写，不编造没讲的内容；术语中英并存；不确定写「存疑」。
 - anchors 3~8 条；时间用输入里的相对时间戳。
 - 全部中文撰写（专有名词可保留英文）。
+- 若提供课件摘录：用来补全章节结构、术语拼写、公式名称；笔记以老师实际讲授（转写）为主。课件里有但课上完全没讲的，写成「课件提及、课上未展开」，不要当成已讲透。
 """
 
 CHUNK_PROMPT = """你在处理长课的第 {i}/{n} 段转写。只根据本段输出 JSON（不要围栏）：
@@ -179,6 +180,17 @@ def rel_timestamp(t0: float, origin: float) -> str:
     return f"{m:02d}:{s:02d}"
 
 
+def _courseware_block(overview: str, slides: str) -> str:
+    parts = []
+    if (overview or "").strip():
+        parts.append("【课程总览课件摘录】\n" + overview.strip())
+    if (slides or "").strip():
+        parts.append("【本课课件摘录】\n" + slides.strip())
+    if not parts:
+        return ""
+    return "\n\n".join(parts) + "\n\n"
+
+
 def split_transcript(text: str, max_chars: int = _CHUNK_CHARS) -> list[str]:
     if len(text) <= max_chars:
         return [text]
@@ -205,7 +217,7 @@ class NoteAgent:
         self.timeout = timeout
 
     def build_input(self, sid: int) -> str:
-        """相对开课时间戳的转写；跳过 ASR 失败行与暂停标记。"""
+        """相对开课时间戳的英中对照；跳过 ASR 失败行与暂停标记。"""
         sess = self.store.get_session(sid)
         origin = None
         if sess and sess[3]:
@@ -218,12 +230,16 @@ class NoteAgent:
             origin = rows[0][1] or 0.0
         origin = origin or 0.0
         events = []
-        for _seq, t0, _t1, en, _zh in rows:
+        for _seq, t0, _t1, en, zh in rows:
             en = (en or "").strip().replace("\n", " ")
+            zh = (zh or "").strip().replace("\n", " ")
             if not en or en.startswith("[ASR错误]"):
                 continue
             ts = t0 if t0 is not None else origin
-            events.append((ts, f"[{rel_timestamp(ts, origin)}] {en}"))
+            line = f"[{rel_timestamp(ts, origin)}] {en}"
+            if zh and not zh.startswith("（未识别") and not zh.startswith("[翻译失败]"):
+                line += f"\n{zh}"
+            events.append((ts, line))
         for t, kind, note in self.store.list_markers(sid):
             if kind == "pause":
                 continue
@@ -265,25 +281,27 @@ class NoteAgent:
         return body["choices"][0]["message"]["content"].strip()
 
     def generate_note(self, sid: int, course: str = "课堂实录",
-                      title: str | None = None) -> dict:
+                      title: str | None = None,
+                      overview: str = "", slides: str = "") -> dict:
         """返回 normalize 后的笔记草稿 dict（不是 Markdown）。"""
         fallback = (title or "课堂实录").strip() or "课堂实录"
         transcript = self.build_input(sid)
-        if not transcript.strip():
+        cw = _courseware_block(overview, slides)
+        if not transcript.strip() and not cw:
             return empty_draft(fallback)
         system = SYSTEM_PROMPT.format(course=course)
-        chunks = split_transcript(transcript)
+        body = transcript.strip() or "（本课没有可用转写，请只根据课件整理复习笔记。）"
+        chunks = split_transcript(body)
+        head = cw + "课堂转写如下（相对开课时间 + 英文原文 + 中文译文）：\n\n"
         if len(chunks) == 1:
-            raw = extract_json(self._complete(
-                system,
-                f"课堂转写如下（相对开课时间 + 英文原文）：\n\n{chunks[0]}"))
+            raw = extract_json(self._complete(system, head + chunks[0]))
             return normalize_draft(raw, fallback)
         partials = []
         n = len(chunks)
         for i, ch in enumerate(chunks, 1):
             raw = extract_json(self._complete(
                 system + "\n" + CHUNK_PROMPT.format(i=i, n=n),
-                f"本段转写：\n\n{ch}",
+                cw + f"本段转写：\n\n{ch}",
                 max_tokens=4096))
             partials.append(normalize_draft(raw, fallback))
         merged = extract_json(self._complete(

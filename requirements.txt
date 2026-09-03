@@ -6,3 +6,4 @@ silero-vad
 onnxruntime
 requests
 PySide6
+pypdf

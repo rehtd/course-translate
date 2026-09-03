@@ -167,6 +167,30 @@ def test_fill_record_boxes_then_append():
         print("PASS test_fill_record_boxes_then_append")
 
 
+def test_audio_routes_follow_m4a():
+    """压缩后主录音只剩 m4a 时，回听路由仍能找到文件。"""
+    from app import config
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        audio = tmp / "audio"
+        audio.mkdir()
+        store = Store(tmp / "smoke.db")
+        sid = store.create_session("t")
+        store.end_session(sid)
+        (audio / f"session_{sid}.m4a").write_bytes(b"fake-m4a")
+        old = config.AUDIO_DIR
+        config.AUDIO_DIR = audio
+        try:
+            w = MainWindow(store, warmup=False)
+            routes = w._build_audio_routes(sid)
+            assert len(routes) == 1, routes
+            assert Path(routes[0][0]).name == f"session_{sid}.m4a"
+            w.close()
+        finally:
+            config.AUDIO_DIR = old
+        print("PASS test_audio_routes_follow_m4a")
+
+
 def test_glossary_extract_dialog_selection():
     dlg = _GlossaryExtractDialog(None, [
         {"en": "Johns Hopkins", "zh": "约翰·霍普金斯", "reason": "学校",

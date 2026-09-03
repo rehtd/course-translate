@@ -18,6 +18,8 @@ scripts/_smoke_*/
 *.aiff
 *.mp3
 *.m4a
+*.opus
+*.caf
 
 # Python
 .venv/
@@ -28,10 +30,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Tooling / local Mac launchers (hardcoded machine paths)
+# Tooling / local Mac app bundle (脚本在 scripts/，.command 进仓库)
 .workbuddy/
-launcher_stub.c
-启动同传课堂.command
 同传课堂.app/
 同传课堂
 未命名/

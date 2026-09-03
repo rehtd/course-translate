@@ -14,11 +14,11 @@
 |------|------|
 | `.env` | 真实 API Key |
 | `data/` | 录音、SQLite、本机 Obsidian 路径、日志 |
-| `*.wav` | 课堂原声 |
+| `*.wav` / `*.m4a` | 课堂原声 |
 | `.venv/`、`__pycache__/` | 本机环境 |
-| `同传课堂.app/`、`启动同传课堂.command`、`launcher_stub.c` | 写死了某台 Mac 的 Python 路径 |
+| `同传课堂.app/` | 本机图标包；启动逻辑在 `启动同传课堂.command` 和 `scripts/macos_launch.sh` |
 
-模板用 [`.env.example`](../.env.example)。每人自己 `cp .env.example .env`。
+模板用 [`.env.example`](../.env.example)。每人自己 `cp .env.example .env` 并填自己的 Key。给新使用者看 [USAGE.md](USAGE.md)。
 
 Whisper / Hugging Face 模型缓存在用户目录（如 `~/.cache`），不要拷进仓库。
 

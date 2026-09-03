@@ -39,6 +39,13 @@ class Store:
         cols = [r[1] for r in c.execute("PRAGMA table_info(sessions)").fetchall()]
         if "note_path" not in cols:
             c.execute("ALTER TABLE sessions ADD COLUMN note_path TEXT")
+        for table, col in (
+            ("courses", "material_path"), ("courses", "material_name"),
+            ("sessions", "material_path"), ("sessions", "material_name"),
+        ):
+            tcols = [r[1] for r in c.execute(f"PRAGMA table_info({table})").fetchall()]
+            if col not in tcols:
+                c.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
         c.execute("""CREATE TABLE IF NOT EXISTS glossary(
             course_id INTEGER NOT NULL, en TEXT NOT NULL, zh TEXT NOT NULL,
             PRIMARY KEY(course_id, en))""")
@@ -89,6 +96,14 @@ class Store:
             return self.conn.execute(
                 "SELECT ord, file, start_epoch FROM session_audio"
                 " WHERE session_id=? ORDER BY ord", (sid,)).fetchall()
+
+    def rename_session_audio_file(self, sid: int, old_file: str, new_file: str):
+        """压缩后续录文件改后缀（主录音不在此表，只改磁盘文件名）。"""
+        with self._lock:
+            self.conn.execute(
+                "UPDATE session_audio SET file=? WHERE session_id=? AND file=?",
+                (new_file, sid, old_file))
+            self.conn.commit()
 
     def max_seq(self, sid: int) -> int:
         """会话当前最大句序号（续录时 seq 从 max+1 继续编号）。"""
@@ -279,6 +294,57 @@ class Store:
     def set_note_path(self, sid: int, path: str):
         with self._lock:
             self.conn.execute("UPDATE sessions SET note_path=? WHERE id=?", (path, sid))
+            self.conn.commit()
+
+    def get_course_material(self, cid: int | None) -> tuple[str, str] | None:
+        """(显示名, 绝对或相对路径) 或 None。"""
+        if not cid:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT material_name, material_path FROM courses WHERE id=?",
+                (cid,)).fetchone()
+        if not row or not row[1]:
+            return None
+        return row[0] or "", row[1]
+
+    def set_course_material(self, cid: int, name: str, path: str):
+        with self._lock:
+            self.conn.execute(
+                "UPDATE courses SET material_name=?, material_path=? WHERE id=?",
+                (name, path, cid))
+            self.conn.commit()
+
+    def clear_course_material(self, cid: int):
+        with self._lock:
+            self.conn.execute(
+                "UPDATE courses SET material_name=NULL, material_path=NULL WHERE id=?",
+                (cid,))
+            self.conn.commit()
+
+    def get_session_material(self, sid: int | None) -> tuple[str, str] | None:
+        if not sid:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT material_name, material_path FROM sessions WHERE id=?",
+                (sid,)).fetchone()
+        if not row or not row[1]:
+            return None
+        return row[0] or "", row[1]
+
+    def set_session_material(self, sid: int, name: str, path: str):
+        with self._lock:
+            self.conn.execute(
+                "UPDATE sessions SET material_name=?, material_path=? WHERE id=?",
+                (name, path, sid))
+            self.conn.commit()
+
+    def clear_session_material(self, sid: int):
+        with self._lock:
+            self.conn.execute(
+                "UPDATE sessions SET material_name=NULL, material_path=NULL WHERE id=?",
+                (sid,))
             self.conn.commit()
 
     def update_session_title(self, sid: int, title: str):

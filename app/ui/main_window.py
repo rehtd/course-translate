@@ -14,9 +14,13 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog
                                QLineEdit, QListView, QListWidget, QListWidgetItem,
                                QPlainTextEdit, QMainWindow, QMenu, QMessageBox,
                                QPushButton, QSplitter, QStatusBar, QStyle,
-                               QStyledItemDelegate, QVBoxLayout, QWidget)
+                               QStyleFactory, QStyledItemDelegate, QVBoxLayout, QWidget)
 
 from app import config, settings
+from app.audio_files import (
+    compress_session, encoder_available, estimate_m4a_bytes, format_bytes,
+    resolve_audio, wav_bytes_total, PROMPT_MIN_BYTES,
+)
 from app.asr import Transcriber
 from app.overlay import ControlChip, SubtitleBar, make_floating
 from app.recorder import Recorder
@@ -94,10 +98,42 @@ QListWidget#transcriptList::item { border: none; padding: 0px; }
 QListWidget#transcriptList::item:selected { background: transparent; }
 
 QStatusBar { background: #ECEEF1; color: #5A5F66; border-top: 1px solid #D8DBE0; }
-QMenuBar { background: #F4F5F7; }
+QMenuBar { background: #F4F5F7; color: #1F2329; }
+QMenu {
+    background: #FFFFFF;
+    color: #1F2329;
+    border: 1px solid #D8DBE0;
+    border-radius: 8px;
+    padding: 4px;
+}
+QMenu::item {
+    background: transparent;
+    color: #1F2329;
+    padding: 6px 20px 6px 12px;
+    border-radius: 4px;
+}
+QMenu::item:selected {
+    background: #E7EDFD;
+    color: #1F2329;
+}
+QMenu::item:disabled {
+    color: #A8ACB3;
+}
+QMenu::separator {
+    height: 1px;
+    background: #E3E5E9;
+    margin: 4px 8px;
+}
 QSplitter::handle { background: #E3E5E9; width: 2px; }
 QToolTip { background: #1F2329; color: white; border: none; padding: 4px 8px; }
 """
+
+
+def _context_menu(parent) -> QMenu:
+    """浅色右键菜单。macOS 系统深色菜单会无视 QSS，需改用 Fusion 绘制。"""
+    menu = QMenu(parent)
+    menu.setStyle(QStyleFactory.create("Fusion"))
+    return menu
 
 
 class _PairDelegate(QStyledItemDelegate):
@@ -206,6 +242,8 @@ class MainWindow(QMainWindow):
     retry_finished = Signal(int, int, str)  # sid, n_ok, err
     gloss_ready = Signal(object)
     gloss_failed = Signal(str)
+    compress_progress = Signal(str)
+    compress_finished = Signal(object)
 
     def __init__(self, store: Store, *, warmup: bool = True):
         super().__init__()
@@ -238,11 +276,14 @@ class MainWindow(QMainWindow):
         self._pending_note = None
         self._retrying = False
         self._extracting_gloss = False
+        self._compressing = False
         self.note_ready.connect(self._on_note_ready)
         self.note_failed.connect(self._on_note_failed)
         self.retry_finished.connect(self._on_retry_finished)
         self.gloss_ready.connect(self._on_gloss_ready)
         self.gloss_failed.connect(self._on_gloss_failed)
+        self.compress_progress.connect(self.status.showMessage)
+        self.compress_finished.connect(self._on_compress_finished)
         self._setup_ui_controls()
         # 录制中：点 Dock 第一下=只留字幕，第二下=完整窗口
         from PySide6.QtWidgets import QApplication
@@ -1026,12 +1067,9 @@ class MainWindow(QMainWindow):
         self.current_session = sid
         sess = self.store.get_session(sid)
         cid = sess[1] if sess else None
+        self._bind_session_audio(sid)
         if cid:
             course = self.store.get_course(cid)
-            self.audio_path = config.AUDIO_DIR / f"session_{sid}.wav"
-            if not self.audio_path.exists():
-                self.audio_path = None
-            self._audio_routes = self._build_audio_routes(sid)
             code = course[1] if course else ""
             self.status.showMessage(f"已保存 · 计入笔记到 {code}（点「计入笔记」选择）")
         self._load_session(sid)
@@ -1043,6 +1081,7 @@ class MainWindow(QMainWindow):
         # 课节列表刷新并选中刚完成的这节课（时长/段数更新）
         self._reload_session_list(select_sid=sid)
         self.status.showMessage(f"✅ 已保存：{self._course_label()} · {sess[2] if sess else ''}（可「计入笔记」）", 5000)
+        QTimer.singleShot(0, lambda: self._maybe_offer_compress(sid))
 
     # ---------- 全文记录 ----------
     def on_full(self):
@@ -1093,8 +1132,7 @@ class MainWindow(QMainWindow):
         if sid is None:
             return
         self.current_session = sid
-        self.audio_path = config.AUDIO_DIR / f"session_{sid}.wav"
-        self._audio_routes = self._build_audio_routes(sid)
+        self._bind_session_audio(sid)
         self.btn_continue.setEnabled(not self._recording_active)
         self._load_session(sid)
         self.btn_note.setEnabled(True)
@@ -1190,7 +1228,14 @@ class MainWindow(QMainWindow):
             if data.get("kind") != "marker":
                 n += 1
         extra = " · 双击句子可回听" if n else ""
-        self.status.showMessage(f"{n} 段{extra} · 会话 {self.current_session or '—'}")
+        hint = ""
+        sid = self.current_session
+        if sid and not self._recording_active:
+            extra_names = [r[1] for r in self.store.list_session_audio(sid)]
+            wav_n = wav_bytes_total(config.AUDIO_DIR, sid, extra_names)
+            if wav_n >= PROMPT_MIN_BYTES:
+                hint = f" · 录音 {format_bytes(wav_n)}（课节右键可压缩）"
+        self.status.showMessage(f"{n} 段{extra}{hint} · 会话 {self.current_session or '—'}")
 
     # ---------- 回放 ----------
     def _on_card_dblclick(self, item):
@@ -1210,14 +1255,18 @@ class MainWindow(QMainWindow):
             return
         self._play_range(t0, t1)
 
+    def _bind_session_audio(self, sid: int):
+        self.audio_path = resolve_audio(config.AUDIO_DIR, f"session_{sid}.wav")
+        self._audio_routes = self._build_audio_routes(sid)
+
     def _build_audio_routes(self, sid: int):
-        """构建「墙钟 → 对应 wav」路由表 [(wav路径, 起始墙钟)]，按时间排序。
+        """构建「墙钟 → 对应录音文件」路由表 [(路径, 起始墙钟)]，按时间排序。
 
         segments.t_start/t_end 是墙钟 epoch 秒（_to_wall 转换）。主录音
-        session_{sid}.wav 从 sessions.started_at 起；续录是独立 wav
-        （session_{sid}_contN.wav），起始墙钟登记在 session_audio 表。
-        回听时按 t0 落到所在 wav，wav 内位置 = 墙钟 - 该 wav 起始墙钟
-        （wav 连续录、暂停不暂停录音，无需扣暂停）。
+        session_{sid}.wav（压缩后可能是 .m4a）从 sessions.started_at 起；
+        续录是独立文件（session_{sid}_contN.wav），起始墙钟登记在
+        session_audio 表。回听时按 t0 落到所在文件，文件内位置 =
+        墙钟 - 该文件起始墙钟（连续录、暂停不暂停录音，无需扣暂停）。
         """
         sess = self.store.get_session(sid)
         if not sess:
@@ -1227,12 +1276,12 @@ class MainWindow(QMainWindow):
             main_start = datetime.fromisoformat(sess[3]).timestamp()
         except (TypeError, ValueError):
             main_start = None
-        main_path = config.AUDIO_DIR / f"session_{sid}.wav"
-        if main_path.exists() and main_start is not None:
+        main_path = resolve_audio(config.AUDIO_DIR, f"session_{sid}.wav")
+        if main_path is not None and main_start is not None:
             routes.append((str(main_path), main_start))
         for _ord, fname, start in self.store.list_session_audio(sid):
-            p = config.AUDIO_DIR / fname
-            if p.exists():
+            p = resolve_audio(config.AUDIO_DIR, fname)
+            if p is not None:
                 routes.append((str(p), float(start)))
         routes.sort(key=lambda r: r[1])
         return routes
@@ -1315,8 +1364,17 @@ class MainWindow(QMainWindow):
                 nonlocal draft, note_err
                 try:
                     from app.note_agent import NoteAgent
+                    from app.materials import extract_pdf_text
+                    overview = slides = ""
+                    cm = self.store.get_course_material(course_id)
+                    if cm:
+                        overview = extract_pdf_text(cm[1], max_chars=8000)
+                    sm = self.store.get_session_material(sid)
+                    if sm:
+                        slides = extract_pdf_text(sm[1], max_chars=12000)
                     draft = NoteAgent(self.store).generate_note(
-                        sid, course=course_name, title=title)
+                        sid, course=course_name, title=title,
+                        overview=overview, slides=slides)
                 except Exception as e:  # noqa: BLE001
                     note_err = e
 
@@ -1452,14 +1510,29 @@ class MainWindow(QMainWindow):
     def _on_course_menu(self, pos):
         item = self.course_list.itemAt(pos)
         cid = item.data(Qt.UserRole) if item else None
-        menu = QMenu(self)
+        menu = _context_menu(self)
         act_add = menu.addAction("新增课程")
+        act_overview = None
+        act_overview_clear = None
+        if item and cid is not None:
+            mat = self.store.get_course_material(cid)
+            label = ("更换课程总览课件…" if mat
+                     else "上传课程总览课件…")
+            if mat:
+                label += f"（{mat[0]}）"
+            act_overview = menu.addAction(label)
+            if mat:
+                act_overview_clear = menu.addAction("移除课程总览课件")
         act_gloss = menu.addAction("术语表") if item and cid is not None else None
         act_ren = menu.addAction("重命名课程") if item and cid is not None else None
         act_del = menu.addAction("删除课程") if item and cid is not None else None
         chosen = menu.exec(self.course_list.viewport().mapToGlobal(pos))
         if chosen == act_add:
             self.on_add_course()
+        elif cid is not None and act_overview is not None and chosen == act_overview:
+            self._attach_course_pdf(cid)
+        elif cid is not None and act_overview_clear is not None and chosen == act_overview_clear:
+            self._clear_course_pdf(cid)
         elif cid is not None and act_gloss is not None and chosen == act_gloss:
             self._edit_glossary(cid)
         elif cid is not None and chosen == act_ren:
@@ -1472,7 +1545,7 @@ class MainWindow(QMainWindow):
         sid = item.data(Qt.UserRole) if item else None
         if sid is None:
             return
-        menu = QMenu(self)
+        menu = _context_menu(self)
         act_cont = menu.addAction("▶ 继续录制")
         act_cont.setEnabled(not self._recording_active)
         n_fail = len(self.store.list_failed_segments(sid))
@@ -1482,21 +1555,169 @@ class MainWindow(QMainWindow):
             n_fail > 0 and not self._recording_active and not self._retrying)
         act_gloss = menu.addAction("从本课提取术语…")
         act_gloss.setEnabled(not self._recording_active and not self._extracting_gloss)
+        extra_names = [r[1] for r in self.store.list_session_audio(sid)]
+        wav_n = wav_bytes_total(config.AUDIO_DIR, sid, extra_names)
+        act_zip = menu.addAction(
+            f"压缩本节录音（{format_bytes(wav_n)}）" if wav_n else "压缩本节录音")
+        act_zip.setEnabled(
+            wav_n > 0 and encoder_available()
+            and not self._recording_active and not self._compressing)
+        menu.addSeparator()
+        sm = self.store.get_session_material(sid)
+        act_slides = menu.addAction(
+            f"更换本节课件…（{sm[0]}）" if sm else "上传本节课件…")
+        act_slides_clear = menu.addAction("移除本节课件") if sm else None
         menu.addSeparator()
         act_ren = menu.addAction("重命名课节")
         chosen = menu.exec(self.session_list.viewport().mapToGlobal(pos))
         if chosen == act_cont:
             self.session_list.setCurrentItem(item)
             self.current_session = sid
-            self.audio_path = config.AUDIO_DIR / f"session_{sid}.wav"
-            self._audio_routes = self._build_audio_routes(sid)
+            self._bind_session_audio(sid)
             self.on_continue()
+        elif chosen == act_zip:
+            self._start_compress(sid)
         elif chosen == act_retry:
             self._retry_failed(sid)
         elif chosen == act_gloss:
             self._extract_glossary(sid)
+        elif chosen == act_slides:
+            self._attach_session_pdf(sid)
+        elif act_slides_clear is not None and chosen == act_slides_clear:
+            self._clear_session_pdf(sid)
         elif chosen == act_ren:
             self._rename_session(sid)
+
+    def _session_extra_audio_names(self, sid: int) -> list:
+        return [r[1] for r in self.store.list_session_audio(sid)]
+
+    def _maybe_offer_compress(self, sid: int):
+        if self._recording_active or self._compressing:
+            return
+        extra = self._session_extra_audio_names(sid)
+        n = wav_bytes_total(config.AUDIO_DIR, sid, extra)
+        if n < PROMPT_MIN_BYTES:
+            return
+        if not encoder_available():
+            self.status.showMessage(
+                f"本节录音 {format_bytes(n)}。本机没有转码工具，无法压缩", 8000)
+            return
+        est = format_bytes(estimate_m4a_bytes(n))
+        box = QMessageBox(self)
+        box.setWindowTitle("压缩录音")
+        box.setText(
+            f"本节录音 {format_bytes(n)}（未压缩 WAV，约 115 MB/小时）。\n"
+            f"压成 AAC 后大约 {est}，双击回听仍可用。课后压缩，不影响下一堂课。")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.setDefaultButton(QMessageBox.Yes)
+        box.button(QMessageBox.Yes).setText("现在压缩")
+        box.button(QMessageBox.No).setText("以后")
+        if box.exec() == QMessageBox.Yes:
+            self._start_compress(sid, ask=False)
+
+    def _start_compress(self, sid: int, *, ask: bool = True):
+        if self._recording_active or self._compressing:
+            return
+        extra = self._session_extra_audio_names(sid)
+        n = wav_bytes_total(config.AUDIO_DIR, sid, extra)
+        if n <= 0:
+            self.status.showMessage("本节没有未压缩的 WAV", 3000)
+            return
+        if not encoder_available():
+            QMessageBox.warning(
+                self, "无法压缩",
+                "本机没有转码工具。macOS 应自带 afconvert；也可以安装 ffmpeg 并加入 PATH。")
+            return
+        if ask:
+            est = format_bytes(estimate_m4a_bytes(n))
+            ret = QMessageBox.question(
+                self, "压缩录音",
+                f"把本节 {format_bytes(n)} 的 WAV 压成 AAC（大约 {est}）？\n"
+                "压缩完成后删除原 WAV，双击回听仍可用。",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if ret != QMessageBox.Yes:
+                return
+        self._compressing = True
+        self.status.showMessage(f"正在压缩录音（{format_bytes(n)}）…", 0)
+        extra_names = list(extra)
+
+        def run():
+            err = ""
+            result = {"before": 0, "after": 0, "renamed": []}
+            try:
+                result = compress_session(
+                    config.AUDIO_DIR, sid, extra_names,
+                    on_progress=self.compress_progress.emit)
+                for old, new in result["renamed"]:
+                    if old != f"session_{sid}.wav":
+                        self.store.rename_session_audio_file(sid, old, new)
+            except Exception as e:  # noqa: BLE001
+                err = str(e)
+            payload = {"sid": sid, "err": err, **result}
+            self.compress_finished.emit(payload)
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def _on_compress_finished(self, payload: dict):
+        self._compressing = False
+        sid = payload.get("sid")
+        err = payload.get("err") or ""
+        if err:
+            QMessageBox.warning(self, "压缩未完成", err)
+            if sid:
+                self._bind_session_audio(sid)
+            return
+        before = payload.get("before") or 0
+        after = payload.get("after") or 0
+        if sid:
+            self._bind_session_audio(sid)
+        if before:
+            self.status.showMessage(
+                f"已压缩录音 {format_bytes(before)} → {format_bytes(after)}，回听仍可用", 8000)
+        else:
+            self.status.showMessage("没有需要压缩的录音", 3000)
+
+    def _attach_course_pdf(self, cid: int):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择课程总览课件（PDF）", "", "PDF (*.pdf)")
+        if not path:
+            return
+        dest = config.MATERIALS_DIR / f"course_{cid}.pdf"
+        from app.materials import save_pdf
+        save_pdf(path, dest)
+        name = pathlib.Path(path).name
+        self.store.set_course_material(cid, name, str(dest))
+        self.status.showMessage(f"已保存课程总览课件：{name}", 4000)
+
+    def _clear_course_pdf(self, cid: int):
+        mat = self.store.get_course_material(cid)
+        self.store.clear_course_material(cid)
+        if mat:
+            p = pathlib.Path(mat[1])
+            if p.exists():
+                p.unlink()
+        self.status.showMessage("已移除课程总览课件", 3000)
+
+    def _attach_session_pdf(self, sid: int):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择本节课件（PDF）", "", "PDF (*.pdf)")
+        if not path:
+            return
+        dest = config.MATERIALS_DIR / f"session_{sid}.pdf"
+        from app.materials import save_pdf
+        save_pdf(path, dest)
+        name = pathlib.Path(path).name
+        self.store.set_session_material(sid, name, str(dest))
+        self.status.showMessage(f"已保存本节课件：{name}", 4000)
+
+    def _clear_session_pdf(self, sid: int):
+        mat = self.store.get_session_material(sid)
+        self.store.clear_session_material(sid)
+        if mat:
+            p = pathlib.Path(mat[1])
+            if p.exists():
+                p.unlink()
+        self.status.showMessage("已移除本节课件", 3000)
 
     def _rename_session(self, sid):
         sess = self.store.get_session(sid)
@@ -1841,6 +2062,22 @@ class _NoteDialog(QDialog):
         default = (sess[2] if sess and sess[2] else "课堂实录")
         self.title_edit = QLineEdit(default)
         lay.addWidget(self.title_edit)
+        bits = []
+        if course_id:
+            cm = store.get_course_material(course_id)
+            if cm:
+                bits.append(f"课程总览：{cm[0]}")
+        if sid:
+            sm = store.get_session_material(sid)
+            if sm:
+                bits.append(f"本节课件：{sm[0]}")
+        hint = QLabel(
+            "计入时会带上：\n" + "\n".join(bits)
+            if bits else
+            "尚未上传课件。可在左侧课程 / 课节上右键上传 PDF（总览 + 本节），笔记会补结构。")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #8A9099; font-size: 12px;")
+        lay.addWidget(hint)
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)

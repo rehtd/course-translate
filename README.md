@@ -2,46 +2,24 @@
 
 课堂实时同传：麦克风 → 本地 faster-whisper → 翻译 → 主窗口对照 + 底部英文悬浮字幕。课后可整理进 Obsidian，并从课节提取术语表。
 
-当前主界面按状态切换：
-
 - **录制中**：主区上英文、下中文两个大框（独立滚动；翻译可以慢几秒）。悬浮字幕只跟英文。
 - **回看**：一句一块，上英下中；双击回听。课间用暂停，不要点结束。
 
+安装、上课、课后，以及 **让 Cursor Agent 代为安装的步骤**，见 **[docs/USAGE.md](docs/USAGE.md)**。
+
+每人使用 **自己申请的** DeepSeek Key，填进本地 `.env`。不要拷贝别人的 `.env`，不要把 `.env` 推进 Git。
+
 ## 环境
 
-- macOS（目前悬浮窗层级用了 AppKit）
+- macOS 13+（上课主路径；悬浮窗用了 AppKit）
 - Python 3.11+
-- `.env` 里至少要有 `DEEPSEEK_API_KEY`（笔记 / 术语提取始终走 DeepSeek）
+- 自己的 `DEEPSEEK_API_KEY`（[申请](https://platform.deepseek.com)）
 
-**Windows**：代码还没改完，先看 [docs/WINDOWS.md](docs/WINDOWS.md)（要注意什么、改哪四处、不要动识别翻译）。适配请开分支 `feat/windows`。
-
-## 安装（macOS）
-
-```bash
-git clone https://github.com/rehtd/course-translate.git
-cd course-translate
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-编辑 `.env`，填入你自己的 Key。**不要把别人的 `.env` 拷过来，也不要提交 `.env`。**
-
-第一次跑识别会下载 Whisper 模型（体积较大，缓存在用户目录）。
-
-```bash
-python main.py
-```
-
-课间休息按暂停；下课后点结束。设置里课堂翻译建议用 **DeepSeek**（机器翻译吃不到术语表和上下文）。
+**Windows**：还不能当稳定上课机，见 [docs/WINDOWS.md](docs/WINDOWS.md)。适配请开分支 `feat/windows`。
 
 ## 仓库纪律
 
-完整约定见 [docs/REPO.md](docs/REPO.md)。摘要：
-
-- **永不提交**：`.env`、`data/`（录音、数据库、本机 settings）、`*.wav`
-- 不要 `git add .`；加文件前看一眼 `git status`
-- Windows 适配开分支 `feat/windows`，不要直接改 `main` 里的实验提交
+见 [docs/REPO.md](docs/REPO.md)。摘要：永不提交 `.env`、`data/`、录音；不要 `git add .`。
 
 ## 上课怎么用
 
@@ -49,6 +27,7 @@ python main.py
 2. 看悬浮英文跟读；主窗口两个框看定稿英/中
 3. 课间暂停，不要结束
 4. 结束后点该课节回看；需要时「计入笔记」、课程右键「术语表」
+5. 课程右键可上传**总览 PDF**，课节右键可上传**本节课件 PDF**（计入笔记时会抽文字）
 
 ## 架构（简）
 

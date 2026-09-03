@@ -79,6 +79,7 @@ def test_build_input_skips_noise_and_pause():
         agent = NoteAgent(store)
         text = agent.build_input(sid)
         assert "hello gradient" in text
+        assert "你好" in text
         assert "[ASR错误]" not in text
         assert "暂停" not in text
         assert "作业" in text

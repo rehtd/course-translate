@@ -10,7 +10,7 @@
 - `sounddevice` + `faster-whisper`（继续 CPU `int8`）
 - 笔记写入 Obsidian vault（路径用 Windows 盘符即可）
 
-同学机：Python **3.11+ 64 位**。不要用仓库里的 `同传课堂.app`、`启动同传课堂.command`（写死了某台 Mac 的解释器）。
+同学机：Python **3.11+ 64 位**。不要用仓库里的 `同传课堂.app`（Mac 图标包）。Mac 可双击 `启动同传课堂.command`；Windows 用 `python main.py`（或以后的 `run.bat`）。
 
 ## 必须改的四处（适配逻辑）
 
@@ -127,7 +127,7 @@ python main.py
 
 - [`app/asr.py`](../app/asr.py)、[`app/translate.py`](../app/translate.py)、[`app/storage.py`](../app/storage.py)、[`app/recorder.py`](../app/recorder.py) 的切句和落库
 - 录制双框 / 回看对照的产品行为
-- 把 Mac 启动器路径改成你的 Windows 用户名再提交（那些文件 git 已忽略）
+- 把 Mac 启动器路径改成你的 Windows 用户名再提交（启动器已按仓库找 Python，不要再写死盘符）
 
 ## 建议改代码的顺序
 
