@@ -1,0 +1,43 @@
+# Secrets and local machine config
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Runtime data: database, recordings, vault path, logs
+data/
+*.db
+*.db-journal
+*_smoke*.db
+scripts/_smoke_*/
+
+# Audio
+*.wav
+*.aiff
+*.mp3
+*.m4a
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Tooling / local Mac launchers (hardcoded machine paths)
+.workbuddy/
+launcher_stub.c
+启动同传课堂.command
+同传课堂.app/
+同传课堂
+未命名/
+
+# Logs and OS junk
+*.log
+.DS_Store
+Thumbs.db
+icon_src/

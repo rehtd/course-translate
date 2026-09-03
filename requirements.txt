@@ -1,0 +1,8 @@
+faster-whisper==1.2.1
+sounddevice
+soundfile
+numpy
+silero-vad
+onnxruntime
+requests
+PySide6
