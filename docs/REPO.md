@@ -2,17 +2,42 @@
 
 远程：<https://github.com/rehtd/course-translate>（私有）。
 
-## 谁能推送
+## 谁能推送（GitHub 权限）
 
-只有仓库主人往 `origin` 推。给同学加协作时选 **Read**，不要选 Write。
+私人仓库、免费账号：**不能**开分支保护 / Ruleset（要 GitHub Pro）。真正能卡死「只有你能改远程」的，是协作者角色。
 
-同学和他们的 Agent：
+当前仓库里只有你（`rehtd`）是协作者，别人现在本来就推不了。以后加人必须发 **Read**。
 
-- 可以 `git clone` / `git pull`
-- **不要** `git push`、不要提 PR 到这个仓库（除非主人另外说）
-- 本机 `.env`、`data/`、录音本来就被 ignore，推不上去也进不了仓库
+### 加同学（只读）
 
-误加了 Write：GitHub → 仓库 Settings → Collaborators → 改成 Read。
+1. 打开 https://github.com/rehtd/course-translate/settings/access  
+   （仓库 → **Settings** → **Collaborators**，左侧 Collaborators and teams）
+2. **Add people**，输入同学的 GitHub 用户名
+3. 角色选 **Read**（不要选 Write / Maintain / Admin）
+4. 发出邀请。同学接受后可以 clone / pull，`git push` 会被 GitHub 拒绝
+
+命令行等价（把 `USERNAME` 换成同学用户名）：
+
+```bash
+gh api -X PUT repos/rehtd/course-translate/collaborators/USERNAME -f permission=pull
+```
+
+`pull` = Read。不要用 `push` 或 `admin`。
+
+### 已经加错过
+
+同一页，同学右边的角色下拉改成 **Read**，或：
+
+```bash
+gh api -X PUT repos/rehtd/course-translate/collaborators/USERNAME -f permission=pull
+```
+
+删掉协作：那一行 **Remove**。
+
+### 同学这边
+
+他们只能拉。Agent 也不要帮他们 `git push`。本机 `.env`、录音、`data/` 已被 ignore，即使误 push 也不会带上 Key 和录音。
+
 
 ## 分支
 
