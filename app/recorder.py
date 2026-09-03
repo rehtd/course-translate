@@ -12,7 +12,8 @@ from PySide6.QtCore import QObject, Signal
 from app import config
 from app.audio import AudioSource
 from app.streamer import StreamingEngine
-from app.translate import asr_initial_prompt, translate_with_retry
+from app.translate import (asr_initial_prompt, join_en, looks_cut,
+                           pending_truncated, should_stitch, translate_with_retry)
 
 _END_PUNCT = ".?!。？！"
 _PARTIAL_STALE_SEC = 2.0    # 字幕草稿入队超时未处理则丢弃
@@ -86,6 +87,7 @@ def _same_sentence(a: str, b: str, win_overlap: float) -> bool:
 
 class Recorder(QObject):
     seg_finalized = Signal(int, float, float, str, str)  # seq, t0, t1, en, zh
+    seg_zh_updated = Signal(int, str)                     # 补上先前因截断而推迟的译文
     partial_ready = Signal(str, str)                     # en, zh（进行中字幕）
     marker_added = Signal(str, str, float)               # kind, note, t
     state_changed = Signal(str)                          # recording/paused/saving/idle
@@ -489,10 +491,7 @@ class Recorder(QObject):
                 else:
                     t0t = time.time()
                     try:
-                        # 背景式上下文翻译：当前句单独翻译，前 N 句英中对照作背景
-                        # 注入 prompt（帮指代/话题理解，维持逐句 1:1 对齐；0=关闭）
-                        ctx = store.recent_context(sid, s, n=config.TRANSLATE_CONTEXT)
-                        zh = translate_with_retry(tsl, en, context=ctx or None)
+                        zh = self._translate_final(store, tsl, sid, s, en)
                     except Exception as e:  # noqa: BLE001
                         zh = f"[翻译失败] {e}"
                     with _stats_lock:
@@ -516,6 +515,39 @@ class Recorder(QObject):
     def _to_wall(self, t_audio: float) -> float:
         """把音频相对时间换算成墙钟时间（含暂停重锚定）。"""
         return self._anchor_wall + (t_audio - self._anchor_fed)
+
+    def _translate_final(self, store, tsl, sid: int, seq: int, en: str) -> str:
+        """定稿翻译：截断的英文先挂起，后半段到了再拼成一句译，避免腰斩后当新句硬译。"""
+        prev = store.recent_segments(sid, seq, n=5)
+        chain = pending_truncated(prev)
+        flushing = self._stop_ev.is_set() or self.paused_ev.is_set()
+        nctx = config.TRANSLATE_CONTEXT
+
+        if chain and not should_stitch(chain[-1][1], en):
+            # 上一截不是本句后半：先把挂起的片段译掉，再译当前句
+            flush_en = join_en(*(p[1] for p in chain))
+            ctx = store.recent_context(sid, chain[0][0], n=nctx)
+            zh_flush = translate_with_retry(tsl, flush_en, context=ctx or None)
+            for pseq, _ in chain:
+                store.update_segment_zh(sid, pseq, zh_flush)
+            self.seg_zh_updated.emit(chain[-1][0], zh_flush)
+            chain = []
+
+        pieces = [p[1] for p in chain] + [en]
+        combined = join_en(*pieces)
+        still_cut = looks_cut(en)
+        too_long = len(chain) >= 2 or len(combined.split()) > 80
+        if still_cut and not flushing and not too_long:
+            return ""
+
+        ctx_seq = chain[0][0] if chain else seq
+        ctx = store.recent_context(sid, ctx_seq, n=nctx)
+        zh = translate_with_retry(tsl, combined, context=ctx or None)
+        if chain and zh and not zh.startswith("[翻译失败]"):
+            for pseq, _ in chain:
+                store.update_segment_zh(sid, pseq, zh)
+            # 不在这里发 seg_zh_updated：当前句入库后 _on_seg 会追加这一次中文
+        return zh
 
     def _on_partial(self, audio, t0, t1):
         with self._plock:

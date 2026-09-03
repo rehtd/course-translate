@@ -24,6 +24,8 @@ CONTEXT_SYSTEM_PROMPT = (
     "你是研究生课堂的同声传译员。把老师的英文讲课内容翻译成地道简体中文。"
     "你会收到最近几句的英中对照作为背景，用于理解指代（this/that/it 等）与话题连贯。"
     "只翻译【当前句】，不要重复、改写或翻译背景里的内容。"
+    "若提示当前句或上一句可能被切窗截断：只译已有词语，不要补全没出现的后半句；"
+    "若当前句是上一句的后半段，按同一句续写，不要当成新话题。"
     "保留技术术语的中英文对应（如 gradient descent=梯度下降），"
     "口语化自然，不要增删原文没有的信息，不要解释术语。只输出当前句的译文。"
 )
@@ -34,6 +36,65 @@ PARTIAL_SYSTEM_PROMPT = (
 
 _NO_RETRY = ("401", "403", "invalid api key", "authentication",
              "invalid_api_key", "unauthorized")
+
+_SENT_END = ".?!。？！"
+_HANGING_LAST = frozenset({
+    "a", "an", "the", "to", "of", "for", "and", "or", "but", "nor",
+    "with", "by", "as", "at", "in", "on", "from", "into", "onto",
+    "than", "this", "that", "these", "those", "our", "your", "their",
+    "its", "we", "you", "they", "i", "it's", "we're",
+    "is", "are", "was", "were", "be", "been", "being",
+    "which", "who", "whom", "whose",
+})
+
+
+def en_truncated(text: str) -> bool:
+    """英文是否不像一句说完（无句末标点）。切窗腰斩时常见。"""
+    t = (text or "").rstrip()
+    if not t or t.startswith("[ASR错误]") or t.startswith("[翻译失败]"):
+        return False
+    return t[-1] not in _SENT_END
+
+
+def should_stitch(prev: str, curr: str) -> bool:
+    """curr 是否更像 prev 被截断后的后半段，应拼在一起再翻译。"""
+    prev = (prev or "").strip()
+    curr = (curr or "").strip()
+    if not prev or not curr or not en_truncated(prev):
+        return False
+    last = prev.split()[-1].lower().strip("\"'(),;:")
+    if last in _HANGING_LAST:
+        return True
+    if curr[0].islower():
+        return True
+    first = curr.split()[0].lower().strip("\"'(),;:")
+    return first in {"and", "or", "but", "because", "which", "that"}
+
+
+def looks_cut(text: str) -> bool:
+    """更像被切窗腰斩（停在冠词/介词/be 动词），而不是只是 Whisper 没打句号。"""
+    if not en_truncated(text):
+        return False
+    last = (text or "").strip().split()[-1].lower().strip("\"'(),;:")
+    return last in _HANGING_LAST
+
+
+def join_en(*parts: str) -> str:
+    return " ".join(p.strip() for p in parts if (p or "").strip())
+
+
+def pending_truncated(previous: list) -> list:
+    """previous: [(seq, en, zh), ...] 从旧到新。取出末尾尚未翻译的截断句。"""
+    chain = []
+    for seq, en, zh in reversed(previous or []):
+        if (zh or "").strip():
+            break
+        if looks_cut(en):
+            chain.append((seq, en))
+        else:
+            break
+    chain.reverse()
+    return chain
 
 
 def parse_glossary_text(text: str) -> list[tuple[str, str]]:
@@ -122,15 +183,36 @@ def build_context_user(text: str, context) -> str:
 
     context: [(en, zh), ...] 时间从旧到新；zh 可能为空（未翻译/被跳过）。
     """
+    hints = []
+    if en_truncated(text):
+        hints.append("注意：当前英文可能被录音切窗截断，只译已有词语，不要补全没出现的后半句。")
+    if context:
+        prev_en = (context[-1][0] or "").strip()
+        if should_stitch(prev_en, text):
+            hints.append(
+                "注意：上一句背景的英文可能被截断，当前句多半是同一句的后半段。"
+                "请按续写翻译，不要当成无关的新句子。")
     if not context:
-        return f"请翻译：{text}"
-    lines = []
+        body = f"请翻译：{text}"
+        return "\n".join(hints + [body]) if hints else body
+    lines = list(hints)
     for i, (en, zh) in enumerate(context, 1):
         lines.append(f"背景{i}（英文）：{en}")
         if zh:
             lines.append(f"背景{i}（中文）：{zh}")
     lines.append(f"请翻译当前句：{text}")
     return "\n".join(lines)
+
+
+def llm_translate_prompts(text: str, context, last_zh: str = "") -> tuple[str, str]:
+    """LLM 引擎的 (system, user)。无背景时仍走 build_context_user，以便带上截断提示。"""
+    if context:
+        return CONTEXT_SYSTEM_PROMPT, build_context_user(text, context)
+    user = build_context_user(text, None)
+    if last_zh:
+        user = f"上一句译文（上下文）：{last_zh}\n{user}"
+    sys_p = CONTEXT_SYSTEM_PROMPT if en_truncated(text) else SYSTEM_PROMPT
+    return sys_p, user
 
 
 def _http_post(url, headers=None, data=None, timeout=30):
@@ -211,11 +293,8 @@ class DeepSeekTranslator(_GlossaryMixin):
         """
         if not text.strip():
             return ""
-        user = (build_context_user(text, context) if context
-                else (f"上一句译文（上下文）：{self.last_zh}\n请翻译：{text}"
-                      if self.last_zh else f"请翻译：{text}"))
-        zh = self._call(self._system(
-            CONTEXT_SYSTEM_PROMPT if context else SYSTEM_PROMPT), user)
+        sys_p, user = llm_translate_prompts(text, context, getattr(self, "last_zh", ""))
+        zh = self._call(self._system(sys_p), user)
         if zh:
             self.last_zh = zh
         return zh
@@ -275,11 +354,8 @@ class DashScopeTranslator(_GlossaryMixin):
     def translate(self, text: str, context=None) -> str:
         if not text.strip():
             return ""
-        user = (build_context_user(text, context) if context
-                else (f"上一句译文（上下文）：{self.last_zh}\n请翻译：{text}"
-                      if self.last_zh else f"请翻译：{text}"))
-        zh = self._call(self._system(
-            CONTEXT_SYSTEM_PROMPT if context else SYSTEM_PROMPT), user)
+        sys_p, user = llm_translate_prompts(text, context, getattr(self, "last_zh", ""))
+        zh = self._call(self._system(sys_p), user)
         if zh:
             self.last_zh = zh
         return zh
@@ -503,11 +579,8 @@ class OllamaTranslator(_GlossaryMixin):
     def translate(self, text: str, context=None) -> str:
         if not text.strip():
             return ""
-        user = (build_context_user(text, context) if context
-                else (f"上一句译文（上下文）：{self.last_zh}\n请翻译：{text}"
-                      if self.last_zh else f"请翻译：{text}"))
-        zh = self._call(self._system(
-            CONTEXT_SYSTEM_PROMPT if context else SYSTEM_PROMPT), user)
+        sys_p, user = llm_translate_prompts(text, context, getattr(self, "last_zh", ""))
+        zh = self._call(self._system(sys_p), user)
         if zh:
             self.last_zh = zh
         return zh

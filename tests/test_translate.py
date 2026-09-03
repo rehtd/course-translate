@@ -7,8 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.storage import Store  # noqa: E402
 from app.translate import (  # noqa: E402
-    DeepSeekTranslator, asr_initial_prompt, format_glossary_text,
-    glossary_prompt, is_retryable, parse_glossary_text, translate_with_retry,
+    DeepSeekTranslator, asr_initial_prompt, build_context_user,
+    en_truncated, format_glossary_text, glossary_prompt, is_retryable,
+    join_en, looks_cut, parse_glossary_text, pending_truncated, should_stitch,
+    translate_with_retry,
 )
 
 
@@ -56,6 +58,65 @@ def test_retry_then_success():
     assert t.n == 2
     assert sleeps
     print("PASS retry_then_success")
+
+
+def test_en_truncated_and_stitch():
+    assert looks_cut("when we look at the") is True
+    assert looks_cut("This is important") is False
+    assert looks_cut("This is done.") is False
+    assert should_stitch("when we look at the", "gradient descent method.") is True
+    assert should_stitch("when we look at the", "gradient descent") is True
+    assert should_stitch("This is the end of the story", "Next we discuss risk.") is False
+    assert should_stitch("OK.", "Let's continue.") is False
+    chain = pending_truncated([
+        (1, "hello there.", "你好。"),
+        (2, "when we look at the", ""),
+    ])
+    assert chain == [(2, "when we look at the")]
+    assert join_en("when we look at the", "gradient descent.") == (
+        "when we look at the gradient descent.")
+    user = build_context_user("gradient descent.", [("when we look at the", "")])
+    assert "后半段" in user
+    user2 = build_context_user("when we look at the", None)
+    assert "截断" in user2
+    print("PASS en_truncated_and_stitch")
+
+
+def test_translate_final_defers_then_stitches():
+    import os
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from app.recorder import Recorder
+
+    class Tsl:
+        def __init__(self):
+            self.calls = []
+
+        def translate(self, text, context=None):
+            self.calls.append(text)
+            return f"ZH:{text}"
+
+    with tempfile.TemporaryDirectory() as td:
+        store = Store(Path(td) / "t.db")
+        sid = store.create_session("t")
+        tsl = Tsl()
+        rec = Recorder(store, None, tsl)
+        rec.session_id = sid
+        rec._stop_ev.clear()
+        rec.paused_ev.clear()
+        zh1 = rec._translate_final(store, tsl, sid, 1, "when we look at the")
+        assert zh1 == ""
+        assert tsl.calls == []
+        store.add_segment(sid, 1, 0, 1, "when we look at the", zh1)
+        zh2 = rec._translate_final(store, tsl, sid, 2, "gradient descent method.")
+        assert zh2 == "ZH:when we look at the gradient descent method."
+        assert tsl.calls == ["when we look at the gradient descent method."]
+        row = store.conn.execute(
+            "SELECT translated_text FROM segments WHERE session_id=? AND seq=1",
+            (sid,)).fetchone()
+        assert row[0] == zh2
+    print("PASS translate_final_defers_then_stitches")
 
 
 def test_auth_error_no_retry():

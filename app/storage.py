@@ -159,6 +159,17 @@ class Store:
                 (sid, before_seq, n)).fetchall()
         return list(reversed([(r[0], r[1]) for r in rows]))
 
+    def recent_segments(self, sid: int, before_seq: int, n: int = 5):
+        """当前句之前最近 n 段 [(seq, en, zh), ...]，从旧到新。含尚未翻译的空译文。"""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT seq, raw_text, translated_text FROM segments"
+                " WHERE session_id=? AND seq<? AND raw_text!=''"
+                " AND raw_text NOT LIKE '[ASR错误]%'"
+                " ORDER BY seq DESC LIMIT ?",
+                (sid, before_seq, n)).fetchall()
+        return list(reversed([(r[0], r[1], r[2] or "") for r in rows]))
+
     def add_marker(self, sid: int, t: float, kind: str = "user", note: str = ""):
         """打点标记：kind='user' 用户打点；kind='pause' 暂停/恢复事件。"""
         with self._lock:

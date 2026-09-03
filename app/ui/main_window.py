@@ -863,6 +863,7 @@ class MainWindow(QMainWindow):
             self.recorder = Recorder(self.store, self.tr, self.tsl,
                                      tr_final=getattr(self, "tr_final", None))
             self.recorder.seg_finalized.connect(self._on_seg)
+            self.recorder.seg_zh_updated.connect(self._on_seg_zh)
             self.recorder.partial_ready.connect(self._on_partial)
             self.recorder.marker_added.connect(self._on_marker)
             self.recorder.state_changed.connect(self._on_state)
@@ -980,6 +981,12 @@ class MainWindow(QMainWindow):
             self._append_zh(zh)
         if self._full_dlg and self._full_dlg.isVisible():
             self._full_dlg.add("seg", seq, t0, zh, en)
+
+    def _on_seg_zh(self, _seq, zh):
+        """先前因英文截断而空着的译文现在补上（英框已经写过，只追加中文）。"""
+        if (zh and not zh.startswith("（未识别")
+                and not zh.startswith("[翻译失败]")):
+            self._append_zh(zh)
 
     def _on_partial(self, en, zh):
         if self.bar:
