@@ -13,7 +13,7 @@
 
 - macOS 13+（上课主路径；悬浮窗用了 AppKit）
 - Python 3.11+
-- 自己的 `DEEPSEEK_API_KEY`（[申请](https://platform.deepseek.com)）
+- 自己的 `DEEPSEEK_API_KEY`（[控制台](https://platform.deepseek.com/usage)）
 
 **Windows**：还不能当稳定上课机，见 [docs/WINDOWS.md](docs/WINDOWS.md)。适配请开分支 `feat/windows`。
 

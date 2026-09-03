@@ -2,9 +2,9 @@
 
 同传课堂：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可写入 Obsidian。
 
-仓库是私有的。克隆前需要被加为 GitHub collaborator。
+仓库是私有的。克隆前需要被加为 GitHub collaborator，**权限选 Read（只读）**，不要给 Write。同学只能 `git pull` / `git clone`，**不能、也不要** `git push` 到这个仓库。
 
-**推荐分发方式：** 把人加进私有仓库，让他们用自己习惯的编码 Agent 打开本仓库，说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人只需要准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。
+**推荐分发方式：** 把人加进私有仓库（Read），让他们用自己习惯的编码 Agent 打开本仓库，说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人只需要准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。
 
 不做成 .dmg / .exe 给人下载。Whisper 模型大、每人要自己的 Key、Windows 还没改完；克隆 + Agent 比打包安装包合适。
 
@@ -13,9 +13,12 @@
 ## 密钥（必读）
 
 - 启动必须有 **你自己的** `DEEPSEEK_API_KEY`（笔记、术语提取、建议的课堂翻译都走 DeepSeek）。
-- 申请：https://platform.deepseek.com → API keys。别人的 Key 不能用，也不要向别人要。
-- 只允许出现在你电脑上的 `.env`。仓库里的 [`.env.example`](../.env.example) 全是占位符。
+- DeepSeek：打开 [用量与控制台](https://platform.deepseek.com/usage)，在同一控制台创建 **API Key**（不要用别人的，也不要向别人要）。
+- 阿里云 / 百度 / 腾讯等机器翻译 Key 的申请步骤可参考：[CSDN 教程（阿里等翻译 API）](https://blog.csdn.net/weixin_44253490/article/details/126365385)。官方入口也写在 [`.env.example`](../.env.example) 各行注释里。上课仍建议 DeepSeek；腾讯在设置里标了待修，课上不要选。
+- 只允许出现在你电脑上的 `.env`。仓库里的 `.env.example` 全是占位符。
 - **不要**拷贝别人的 `.env`，**不要**把 `.env` 发给别人或推进 Git。
+
+同学 Agent：**不要** `git push`、**不要** `git push -u origin`。本仓库只接受仓库主人推送。本地改 `.env`、`data/` 本来也不会进 Git。
 
 ---
 
@@ -52,7 +55,9 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-然后告诉使用者：用编辑器打开 `.env`，把 `DEEPSEEK_API_KEY=` 后面换成自己申请的 Key。**Agent 到此停止，等使用者说已经填好。**
+然后告诉使用者：打开 [DeepSeek 控制台](https://platform.deepseek.com/usage) 自己申请 API Key，用编辑器打开 `.env`，把 `DEEPSEEK_API_KEY=` 后面换成自己的。**Agent 到此停止，等使用者说已经填好。不要代填，不要 `git push`。**
+
+若还要阿里/百度/腾讯机器翻译，把这篇教程发给用户自己申请，填进 `.env` 对应行：[CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385)。
 
 若 **已经存在** `.env`：不要覆盖、不要 `cat .env`、不要把内容写进聊天或 commit。
 
@@ -100,6 +105,7 @@ python main.py
 ### 8. Agent 禁止做的事
 
 - `git add .`、`git add data`、`git add .env`、提交 wav/m4a/db。
+- **`git push` / `git push -u origin` 到 https://github.com/rehtd/course-translate**（同学只读；不要帮他们推）。
 - 把使用者 Key 写进 README、issue、PR、聊天记录。
 - 为了「方便测试」把真实 `.env` 拷到另一台机器。
 - 改上课识别/切句/翻译核心来「顺便」修 Windows（Windows 开 `feat/windows`）。
@@ -113,7 +119,7 @@ export DEEPSEEK_API_KEY=sk-test-dummy
 python tests/test_mainwindow_smoke.py
 ```
 
-需要提交时：先 `git status`，确认没有 `.env` / `data/` / 音频，再按路径 `git add`。规范见 [REPO.md](REPO.md)。
+需要提交时（**仅仓库主人**）：先 `git status`，确认没有 `.env` / `data/` / 音频，再按路径 `git add`。规范见 [REPO.md](REPO.md)。同学不要提交、不要 push。
 
 ---
 

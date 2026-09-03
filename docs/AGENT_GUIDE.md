@@ -7,7 +7,7 @@
 原则：
 
 1. 你跑终端、改仓库、解释按钮；**Key、麦克风权限、Obsidian 路径、点界面，由用户自己做。**
-2. 不要打开、复述、覆盖已有 `.env`。不要 `git add .`。不要提交 `data/` 和录音。
+2. 不要打开、复述、覆盖已有 `.env`。不要 `git add .`。不要提交 `data/` 和录音。**不要 `git push` 到这个远程仓库**（同学只有只读权限；有 Write 也不要推）。
 3. 一次只引导一步，等用户说「好了」再下一步。上课中途不要让用户改翻译引擎或切课。
 
 ---
@@ -18,9 +18,9 @@
 
 **A. 装好并能打开（每人一次）**
 
-1. 克隆仓库（需 GitHub 协作权限）
+1. 克隆仓库（主人须把同学加成 **Read** 协作者，不要给 Write）
 2. Python 3.11+、建 `.venv`、装 `requirements.txt`
-3. 用户自己申请 DeepSeek Key，写入本地 `.env`
+3. 用户自己到 [DeepSeek 控制台](https://platform.deepseek.com/usage) 申请 Key，写入本地 `.env`（阿里等机器翻译教程：[CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)）
 4. 允许麦克风
 5. 启动应用（`python main.py` 或双击 `启动同传课堂.command`）
 6. 设置：Obsidian 库路径；课堂翻译选 DeepSeek；识别模式用默认即可
@@ -72,7 +72,7 @@
 
 | 用户说 | 做 |
 |--------|----|
-| 帮我装 / 打不开 | A1–A5，见 USAGE.md |
+| 帮我推到 GitHub / push | 拒绝。同学只读，不要 `git push` |
 | 没有 Key / 弹缺少 DEEPSEEK | A3，停下来等用户自己填 |
 | 没声音 / 识别不到 | A4，然后确认选对了课程再新建一节 |
 | 设置笔记库 / 翻译引擎 | A6 |
@@ -157,6 +157,7 @@
 ## 你不要主动做的
 
 - 做成 dmg/exe 给人下载
+- `git push` 到 origin（同学只拉不推）
 - 把 115 夹具或 `data/audio` 推进 Git
 - 为 Windows 「顺便」重写识别翻译（开 `feat/windows`，只改 [WINDOWS.md](WINDOWS.md) 里那四处壳）
 - 语种自动切换、课上改译文、用文件当麦克风

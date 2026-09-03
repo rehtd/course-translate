@@ -2,6 +2,18 @@
 
 远程：<https://github.com/rehtd/course-translate>（私有）。
 
+## 谁能推送
+
+只有仓库主人往 `origin` 推。给同学加协作时选 **Read**，不要选 Write。
+
+同学和他们的 Agent：
+
+- 可以 `git clone` / `git pull`
+- **不要** `git push`、不要提 PR 到这个仓库（除非主人另外说）
+- 本机 `.env`、`data/`、录音本来就被 ignore，推不上去也进不了仓库
+
+误加了 Write：GitHub → 仓库 Settings → Collaborators → 改成 Read。
+
 ## 分支
 
 - `main`：可在 macOS 上安装后上课用的源码
