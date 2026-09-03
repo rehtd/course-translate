@@ -53,7 +53,7 @@ def test_asr_modes_constant():
 
 
 def test_settings_lock_provider_while_recording():
-    """P0 修复：录制中打开设置，翻译引擎下拉框必须禁用（防切引擎置空 recorder）。"""
+    """录制中打开设置，翻译引擎下拉框必须禁用（防切引擎置空 recorder）。"""
     s = {"vault": "", "notes_subdir": "01-章节笔记",
          "translate_provider": "deepseek", "asr_mode": "realtime"}
     dlg_locked = _SettingsDialog(None, s, lock_provider=True)

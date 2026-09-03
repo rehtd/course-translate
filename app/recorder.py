@@ -15,18 +15,11 @@ from app.streamer import StreamingEngine
 from app.translate import asr_initial_prompt, translate_with_retry
 
 _END_PUNCT = ".?!。？！"
-_PARTIAL_STALE_SEC = 2.0    # 预翻任务入队超过此时长未处理则丢弃（新的马上会来）
-_REUSE_OVERLAP = 0.5        # 定稿复用预翻的最小窗口重叠率（v3.5：partial 短窗 3s
-                            # 与 final 5s 窗最大重叠 3/5=0.6，故 0.7→0.5 恢复复用）
-_REUSE_STABLE = 2           # 预翻连续同文的稳定次数
-_PENDING_MAX = 10.0         # 句子未完时周期定稿最多等几秒（v3.6 防腰斩兜底，
-                            # 超过则强制定稿，防长句无限跳过导致内容丢失）
-# 队列优先级：final 定稿(0) 必须优先于 partial 预翻(1)。
-# 教训（2026-09-01 session 93）：原设计 partial=0 永远插队，精准模式下 ASR
-# 变慢（~2s/个）时 asr_worker 永远在处理 partial，final 被饿死积压 209 个，
-# 停止时逐个转写（7 分钟）用户强杀进程 → end_session 未执行、状态卡 recording、
-# 后 18 分钟内容全部丢失。final 是入库定稿（内容），partial 只是实时预览
-# （丢弃后 1.5s 内新的马上来，最多字幕跳一帧）→ final 优先，partial 靠过期丢弃兜底。
+_PARTIAL_STALE_SEC = 2.0    # 字幕草稿入队超时未处理则丢弃
+_REUSE_OVERLAP = 0.5        # 定稿复用字幕草稿的最小窗口重叠率
+_REUSE_STABLE = 2           # 字幕草稿连续同文的稳定次数
+_PENDING_MAX = 10.0         # 句子未完时周期定稿最多再等几秒，超时强制切
+# 定稿优先于字幕草稿，避免精修排队时字幕任务把入库饿死。
 _PRIO_FINAL = 0
 _PRIO_PARTIAL = 1
 
@@ -65,31 +58,20 @@ def _prefix_ratio(a: str, b: str) -> float:
 
 
 def _sentence_incomplete(text: str, rms: float, talk_gap: float, since: float) -> bool:
-    """v3.6 周期定稿跳过判定：句子未完（无终止标点 且 仍在说话）且未超等待上限。
-
-    周期定稿（每 5s）在句子中间截断会丢句子尾部词（session_99 实测 45% 段
-    无终止标点结尾）。句子未完且老师还在说 → 跳过本次定稿，等句子说完
-    （静音/标点）再整句入库。超 _PENDING_MAX 强制定稿兜底（防长句无限跳过）。
-    """
+    """周期定稿时：无句末标点且仍在说话则先跳过，超时则强制切。"""
     if since >= _PENDING_MAX:
         return False
     if not text or text[-1] in _END_PUNCT:
         return False
-    # 仍在说话：能量高 或 最近 2s 内有非空文本（外放/远场低音量时 rms 偏低）
+    # 仍在说话：能量高，或最近 2s 有转写（外放时 rms 可能偏低）
     return rms > 0.01 or talk_gap < 2.0
 
 
 def _same_sentence(a: str, b: str, win_overlap: float) -> bool:
     """a 是否为 b 的同句重发（防重复定稿）。
 
-    ASR 滑动窗口在句子定稿后会继续把同一句作为 partial 重发 2~3 次。
-    v3.5 判据（短窗双轨后前缀判定失效——短窗 partial 只重发句尾片段，
-    前缀重合低）：
-    1. 时间窗不重叠（win_overlap ≤ 0.7）→ 新句子，放行；
-    2. 长度明显增长（>+2 字符）→ 残句补全（周期定稿截走半句后拿到完整句），
-       必须放行；
-    3. 同音频且长度不增 → 检查 a 是否大部分被 b 覆盖（同句重发/尾部片段），
-       覆盖率高则判同句跳过。
+    滑动窗会把刚定稿的句子再送 2～3 次。时间窗不重叠或明显变长则放行；
+    同窗且大部分被旧句覆盖则跳过。
     """
     if not a or not b:
         return False
@@ -115,9 +97,9 @@ class Recorder(QObject):
         self.store = store
         self.tr = tr
         self.tsl = tsl
-        self.tr_final = tr_final   # v3.7 双轨：定稿精修模型（如 medium）；None 则复用 tr
+        self.tr_final = tr_final   # None = 草稿和定稿共用 self.tr
         self.asr_mode = asr_mode
-        # 模式参数：start() 时按 asr_mode 计算（见 _apply_mode），录制中修改属性下次录制生效
+        # start() 时按 asr_mode 写入；录制中改设置只影响下一场
         self._asr_win = 5.0
         self._partial_beam = 1
         self._vad = False
@@ -128,10 +110,10 @@ class Recorder(QObject):
         self._feed_thread = None
         self._workers = []
         self.asr_q: "queue.PriorityQueue" = queue.PriorityQueue()  # (prio, seq, item)
-        self.m_q: "queue.Queue" = queue.Queue()    # 定稿精修通道（v3.7：final 音频 → medium）
-        self.p_q: "queue.Queue" = queue.Queue()    # partial 实时字幕通道（独立线程）
-        self.f_q: "queue.Queue" = queue.Queue()    # final 定稿入库通道（独立线程）
-        self.ui_q: "queue.Queue" = queue.Queue()   # partial 决策通道
+        self.m_q: "queue.Queue" = queue.Queue()    # 定稿精修
+        self.p_q: "queue.Queue" = queue.Queue()    # 实时字幕
+        self.f_q: "queue.Queue" = queue.Queue()    # 定稿入库
+        self.ui_q: "queue.Queue" = queue.Queue()   # 字幕上屏
         self._plock = threading.Lock()
         self._partial_pending = [False]
         self.seq = [0]
@@ -150,21 +132,7 @@ class Recorder(QObject):
 
     # ---------- 对外控制（UI 线程调用） ----------
     def _apply_mode(self):
-        """按 asr_mode 计算识别参数：realtime=5s 窗+beam1 预翻、无 VAD（现状）；
-        precise=10s 窗+beam3 预翻、VAD 滤环境音（更准更稳，延迟约 +0.5s）。
-
-        产品分层：字幕要快、框内要准。
-        v3.5 流畅度优化（仅 realtime 生效，precise 保持原参数不动）：
-        - partial_win 1.5→1.2s（字幕触发更频繁）
-        - partial_asr_win 3.0s 短窗（只喂悬浮字幕）
-        - 定稿按 [上一句切点, 现在] 整段精修，写入右侧框（可慢）
-        """
-        """按 asr_mode 计算识别参数。
-
-        字幕路径（partial）始终短窗 + greedy：上课跟读要快。
-        框内路径（final）受 asr_mode 影响：realtime 默认 5s 起切；
-        precise 把定稿窗口拉到 10s 并在精修时开 VAD，字幕不跟着变慢。
-        """
+        """字幕始终短窗 greedy；precise 只加长框内定稿窗口并开 VAD。"""
         precise = self.asr_mode == "precise"
         self._asr_win = 10.0 if precise else 5.0
         self._partial_beam = 1
@@ -284,9 +252,7 @@ class Recorder(QObject):
         _dbg("_finish 开始：等待 feed_loop 退出…")
         if self._feed_thread is not None:
             self._feed_thread.join(timeout=300)
-        # 关键：正常结束路径必须停掉采集源（此前只停在错误路径）——否则
-        # sounddevice 流一直开着、wav 持续写入直到应用退出：会话音频里
-        # 混入结束后的声音、队列无限增长（内存泄漏）。
+        # 必须停采集，否则结束后 wav 还会继续写。
         src = getattr(self, "src", None)
         if src is not None:
             try:
@@ -314,12 +280,8 @@ class Recorder(QObject):
                 n_final += 1
                 self.asr_q.put(item)
         _dbg(f"_finish：清理 asr_q，保留 final {n_final} 个 / 丢弃 {len(items) - n_final} 个任务")
-        self._asr_put(9, None)   # 哨兵（最高优先级序号，最后处理）
-        # 正常收尾：残留的 final 翻译通常每个 <1s，10s 足够；若翻译引擎卡死/超时
-        # （如网络异常 15s 超时 × 多句积压），也不阻塞保存——worker 是 daemon 线程，
-        # 超时后直接 end_session，剩余句子的翻译结果随后异步补入（store 有锁，安全）。
-        # 并行 join（而非串行 3×10s）：最快让 UI 收到 idle，避免用户以为卡死而强杀进程
-        # （强杀 → end_session 永远不执行 → DB 卡 recording，2026-09-01 session 93 教训）。
+        self._asr_put(9, None)
+        # 并行短等 worker；超时也不挡保存（daemon，结果可随后补入）。
         ts = [t for t in self._workers if t is not None and t.is_alive()]
         for t in ts:
             t.join(timeout=5)
@@ -339,11 +301,7 @@ class Recorder(QObject):
 
     # ---------- 内部 ----------
     def _start_workers(self):
-        # 代际机制（P0 修复 2026-09-02）：终止上一代 worker。
-        # 停止收尾 join 超时后，残留 worker（daemon）仍可能活着并消费队列；
-        # 若此时用户立即「继续录制/新建」，旧 worker 会把新会话句子写进旧课节
-        # （闭包 sid 是旧的）或重复入库。每代持独立 Event：新代启动时 set 旧代的，
-        # 旧 worker 在 get(timeout=0.5) 轮询里检测到即退出，不再消费新任务。
+        # 开新一场前结束上一代 worker，避免旧线程把句子写进上一节。
         old_ev = getattr(self, "_epoch_ev", None)
         self._epoch_ev = threading.Event()
         if old_ev is not None:
@@ -356,7 +314,7 @@ class Recorder(QObject):
         asr_q, m_q, p_q, f_q, ui_q = (self.asr_q, self.m_q, self.p_q,
                                       self.f_q, self.ui_q)
         plock, pending = self._plock, self._partial_pending
-        # 延迟埋点：asr=识别耗时，ptr=预翻翻译耗时，ftr=定稿翻译耗时，reuse=定稿复用预翻次数
+        # 延迟埋点：asr=识别耗时，ftr=定稿翻译耗时，reuse=定稿复用草稿次数
         stats = {"asr_p": [], "asr_f": [], "ptr": [], "ftr": [], "reuse": 0, "drop": 0}
         _stats_lock = threading.Lock()
 
@@ -367,14 +325,14 @@ class Recorder(QObject):
                     return
                 def _f(v):
                     return f"{sum(v)/len(v)*1000:.0f}ms" if v else "-"
-                print(f"[perf] ASR预翻 {_f(stats['asr_p'])} | ASR定稿 {_f(stats['asr_f'])} | "
+                print(f"[perf] ASR草稿 {_f(stats['asr_p'])} | ASR定稿 {_f(stats['asr_f'])} | "
                       f"预翻翻译 {_f(stats['ptr'])} | 定稿翻译 {_f(stats['ftr'])} | "
                       f"复用 {stats['reuse']} | 丢弃过期partial {stats['drop']}", flush=True)
                 for k in ("asr_p", "asr_f", "ptr", "ftr"):
                     stats[k] = stats[k][-10:]
 
         def asr_worker():
-            # 预翻稳定性跟踪（供定稿复用判定——仅单模型模式用）
+            # 草稿稳定性跟踪（供定稿复用判定——仅单模型模式用）
             last_pt0, last_pt1 = [None], [None]
             last_ptext = [""]
             stable = [0]
@@ -424,7 +382,7 @@ class Recorder(QObject):
                     if tr_final is not None:
                         m_q.put((_sid, s, t0, t1, audio))
                         continue
-                    # 单模型模式（tr_final=None，兼容旧行为）：复用预翻或 small beam5
+                    # 单模型（tr_final=None）：复用字幕草稿或 small beam5
                     text = None
                     can_reuse = (stable[0] >= _REUSE_STABLE
                                  and last_ptext[0]
@@ -435,7 +393,7 @@ class Recorder(QObject):
                         text = last_ptext[0]
                         with _stats_lock:
                             stats["reuse"] += 1
-                        _dbg("asr_worker：定稿复用预翻文本")
+                        _dbg("asr_worker：定稿复用字幕草稿")
                     if text is None:
                         t0a = time.time()
                         try:
@@ -458,10 +416,7 @@ class Recorder(QObject):
             _report(force=True)
 
         def final_asr_worker():
-            """v3.7 定稿精修通道：独立线程 + 独立模型实例逐句精修。
-
-            字幕草稿（small）与框内精修并行：字幕跟读不被定稿拖住。
-            不与草稿共用 _mlock（不同实例线程安全）。"""
+            """定稿精修：独立线程和模型，不拖住字幕草稿。"""
             while True:
                 if self._epoch_ev.is_set():
                     return
@@ -490,13 +445,7 @@ class Recorder(QObject):
         last_partial_t = [0.0]
 
         def partial_worker():
-            """实时字幕通道：独立线程，final 定稿翻译再慢也不阻塞 partial 上屏。
-
-            v3（2026-09-01 用户拍板）：不再做 partial 预翻——用户不追求翻译速度，
-            中文译文统一由 final 定稿翻译后累积到主窗口「中文译文区」。
-            partial 只负责把英文识别结果快速上屏（省一半 API 调用：每 1.5s 一次
-            的预翻彻底取消；句子定稿后只翻译一次）。
-            """
+            """实时字幕：只上英文，不在这里翻译。"""
             while True:
                 if self._epoch_ev.is_set():
                     return
@@ -573,7 +522,7 @@ class Recorder(QObject):
             if self._partial_pending[0]:
                 return
             self._partial_pending[0] = True
-        _dbg(f"on_partial t0={t0:.1f} t1={t1:.1f}（入 asr_q 预翻）")
+        _dbg(f"on_partial t0={t0:.1f} t1={t1:.1f}（入 asr_q 字幕草稿）")
         self._asr_put(_PRIO_PARTIAL, ("partial", 0, self._to_wall(t0), self._to_wall(t1), audio))
 
     def _on_final(self, audio, t0, t1):
@@ -623,16 +572,9 @@ class Recorder(QObject):
                             and len(engine.ring) >= engine.asr_win * engine.sr * 0.6
                             and (engine.ring_rms() > 0.01
                                  or fed_sec - last_talk[0] < engine.asr_win + 1)):
-                        # v3.6 防腰斩丢尾词：5s 周期定稿在句子中间截断时，
-                        # 句子后半（最后几个词）会丢（session_99 实测 45% 段
-                        # 无终止标点结尾）。若最近转写无终止标点（句子未完）
-                        # 且仍在说话（能量高）且未超等待上限 → 跳过本次定稿，
-                        # 等句子说完（静音 rms 低 → 能量条件不满足 → 正常定稿，
-                        # 或标点定稿先触发）再整句入库。
+                        # 句中不要切：无句号且还在说则跳过本次周期定稿。
                         _rms = engine.ring_rms()
                         _since = fed_sec - last_final_t[0]
-                        # 未完 = 最近转写无终止标点 且 仍在说话（能量高 或 最近 2s
-                        # 内有非空文本——外放/远场低音量时 rms 偏低，用 talk 兜底）
                         if _sentence_incomplete(last_partial[0], _rms,
                                                 fed_sec - last_talk[0], _since):
                             _dbg(f"feed_loop：句子未完，跳过周期定稿 @fed={fed_sec:.1f}"
@@ -662,11 +604,7 @@ class Recorder(QObject):
                         if (t[-1] in _END_PUNCT and len(t) > 12 and prev
                                 and _prefix_ratio(t, prev) > 0.8
                                 and len(engine.ring) >= engine.asr_win * engine.sr * 0.6):
-                            # 同句重发去重：定稿后 ASR 滑动窗口还会把同一句重发
-                            # 2~3 次。v3.5 判据 = 时间窗重叠 + 长度不增 + 文本覆盖
-                            # （短窗 partial 只重发句尾片段，前缀重合低 → 前缀判据
-                            # 失效）；残句补全（周期定稿截走半个句子后拿到完整句，
-                            # 长度明显增长）必须放行。
+                            # 同句重发去重：定稿后滑动窗还会把同一句再送几遍。
                             new_win = [fed_sec - engine.asr_win, fed_sec]
                             win_ov = _overlap(last_final_win[0], last_final_win[1],
                                               new_win[0], new_win[1])

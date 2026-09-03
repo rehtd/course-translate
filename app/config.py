@@ -46,8 +46,7 @@ TRANSLATE_CONTEXT = int(os.environ.get("TRANSLATE_CONTEXT", "2"))
 
 # ---- ASR ----
 ASR_MODEL = os.environ.get("ASR_MODEL", "small")   # tiny/base/small/medium/large
-ASR_PARTIAL_MODEL = os.environ.get("ASR_PARTIAL_MODEL", "small")  # 字幕草稿模型（v3.7 双轨：
-    # 草稿用轻量模型快速跟读；定稿用 ASR_MODEL 精修，识别正确优先）
+ASR_PARTIAL_MODEL = os.environ.get("ASR_PARTIAL_MODEL", "small")  # 字幕草稿（轻量跟读；定稿用 ASR_MODEL）
 ASR_LANGUAGE = os.environ.get("ASR_LANGUAGE", "en")
 ASR_BEAM = 5
 

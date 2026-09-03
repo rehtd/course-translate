@@ -1,4 +1,4 @@
-"""v3 双区架构无头冒烟测试：
+"""双区架构无头冒烟：布局、英中双框、字幕只显英文。
 1. MainWindow 四栏 split（课程/课节/回看列表/录制双框，按 workspace 显隐）
 2. _append_zh / _append_en 累积 + 自动滚底
 3. _upsert_partial 只上屏英文（卡片 zh 隐藏）
@@ -72,7 +72,7 @@ fr_dual.set_lang("zh")
 assert not fr_dual.zh_lbl.isHidden(), "set_lang('zh') 后 zh 应显示"
 print("[OK] _FullRow 空 zh 隐藏 + set_lang 联动正常")
 
-# ---- 5: overlay 只显英文 + 固定单行高度（v3.4）----
+# ---- 5: overlay 只显英文 + 固定单行高度 ----
 # 注意：offscreen 平台不支持悬浮窗 raise()，不 show，直接调方法断言（isHidden 不依赖显示）
 from app.overlay import SubtitleBar
 bar = SubtitleBar()
@@ -88,11 +88,11 @@ assert "…" in bar.en.text(), "英文应带省略号"
 assert bar.height() == 66, f"partial 后高度仍应 66: {bar.height()}"
 print(f"[OK] overlay 只显英文：en='{bar.en.text()}' 高度固定 66")
 
-# ---- 5b: v3.4 短句化 + 固定高度 ----
+# ---- 5b: 短句化 + 固定高度 ----
 bar.update_text("This is the first sentence. This is the second sentence.", "这是第一句。这是第二句。")
 app.processEvents()
 assert bar.en.text() == "This is the second sentence.", f"final 应显示尾句: {bar.en.text()!r}"
-print(f"[OK] v3.4 final 短句化：en='{bar.en.text()}'")
+print(f"[OK] final 短句化：en='{bar.en.text()}'")
 
 long_talk = ("the professor is explaining a very very long concept "
              "that keeps growing and growing and growing and growing")
@@ -102,13 +102,13 @@ assert "…" in bar.en.text(), "长句 partial 应带省略号"
 assert len(bar.en.text()) < len(long_talk) + 2, f"长句应短句化: {bar.en.text()!r}"
 assert "growing" in bar.en.text(), "短句化应保留末尾内容"
 assert bar.height() == 66, f"长句不改变窗口高度: {bar.height()}"
-print(f"[OK] v3.4 partial 长句短句化：len={len(bar.en.text())} en='{bar.en.text()}'")
+print(f"[OK] partial 长句短句化：len={len(bar.en.text())} en='{bar.en.text()}'")
 
 # 空英文 → 状态占位显示在主行（启动「等待老师讲课…」）
 bar.update_text("", "等待老师讲课…")
 app.processEvents()
 assert "等待老师讲课" in bar.en.text(), "空英文时应保留中文占位"
-print("[OK] v3.4 空英文保留中文状态占位")
+print("[OK] 空英文保留中文状态占位")
 
 # 暂停/恢复
 bar.show_paused(True)
@@ -137,12 +137,12 @@ en_txt = win.en_box.toPlainText()
 assert "First sentence in English." in en_txt and "Second sentence" in en_txt, f"英文积累不对: {en_txt!r}"
 assert win.en_box.verticalScrollBar().value() == win.en_box.verticalScrollBar().maximum(), "en_box 未自动滚底"
 assert win.zh_box.toPlainText() != "", "zh_box 仍应保留中文译文"
-print("[OK] v3.4 右侧双框：en_box 累积英文 + 滚底，zh_box 中文保留")
+print("[OK] 右侧双框：en_box 累积英文 + 滚底，zh_box 中文保留")
 
 # 切会话清空两个框
 win._clear_transcript()
 assert win.en_box.toPlainText() == "" and win.zh_box.toPlainText() == "", "切会话应清空双框"
-print("[OK] v3.4 切会话清空英文/中文双框")
+print("[OK] 切会话清空英文/中文双框")
 
 win.close()
 bar.close()

@@ -409,8 +409,7 @@ class MainWindow(QMainWindow):
         self._placeholder_item = None
         self._show_placeholder("在中间栏选择课节查看转写，或点击「＋ 新建一节课」开始录制")
 
-        # 右侧：英文原文 / 中文译文 双积累框（v3.4 用户拍板：中英对照在
-        # 框内累积看，悬浮字幕只显英文实时跟读）
+        # 右侧：英文原文 / 中文译文 双积累框（对照在框内看，悬浮字幕只跟读英文）
         def _make_box(title: str, placeholder: str, mono: bool = False):
             panel = QWidget()
             v = QVBoxLayout(panel)
@@ -616,7 +615,7 @@ class MainWindow(QMainWindow):
         self._transcript_sticky = sb.maximum() - sb.value() < 24
 
     def _upsert_partial(self, en, zh):
-        # v3：partial 只上屏英文（zh 恒空），卡片只显示英文识别结果
+        # 实时草稿只上屏英文（zh 恒空），中文等定稿后再进框
         zh = ""
         if self._partial_item is None:
             self._drop_placeholder()
@@ -736,7 +735,7 @@ class MainWindow(QMainWindow):
 
         def load():
             try:
-                # v3.7 双轨：草稿用轻量模型（跟读快），定稿用 ASR_MODEL（准确优先）
+                # 草稿用轻量模型跟读；定稿用 ASR_MODEL
                 self.tr = Transcriber(config.ASR_PARTIAL_MODEL, config.ASR_BEAM,
                                       config.ASR_LANGUAGE)
                 if config.ASR_MODEL != config.ASR_PARTIAL_MODEL:
@@ -793,11 +792,9 @@ class MainWindow(QMainWindow):
     def _on_app_state(self, state):
         """录制中切后台再回来：只重设字幕浮动层，不要 hide/show 主窗口。
 
-        旧逻辑把激活当成「点 Dock 速览」：鼠标不在本进程窗口上就 hide()。
-        字幕点击穿透，Cmd+Tab / 从 PPT 切回来时 widgetAt 经常是 None，
-        于是每次回前台都把主窗口藏掉；handler 里再 activateWindow() 会
-        重入 ApplicationActive，show 完立刻又 hide，看起来像卡死。
-        字幕靠浮动层级保持可见，切应用不必动主窗口。
+        字幕点击穿透，Cmd+Tab / 从 PPT 切回来时 widgetAt 经常是 None；
+        若据此 hide() 主窗口，再 activateWindow 会重入 ApplicationActive，
+        看起来像卡死。字幕靠浮动层级保持可见，切应用不必动主窗口。
         """
         if state != Qt.ApplicationActive or not self._recording_active:
             return
@@ -1477,9 +1474,7 @@ class MainWindow(QMainWindow):
     def on_settings(self):
         s = settings.load()
         old_provider = s.get("translate_provider", "deepseek")
-        # P0 修复（2026-09-02）：录制中切换翻译引擎会置 self.recorder = None，
-        # 导致 on_stop 直接 return、录音无法结束（只能强杀进程 → 数据丢失）。
-        # 录制中禁用「翻译引擎」下拉框；即便强行触发也不重建 recorder。
+        # 录制中不能切翻译引擎：会把 self.recorder 置空，导致无法正常结束。
         recording = bool(getattr(self, "_recording_active", False))
         dlg = _SettingsDialog(self, s, lock_provider=recording)
         if dlg.exec():
@@ -2137,9 +2132,14 @@ class _SettingsDialog(QDialog):
         asr_tip.setWordWrap(True)
         asr_tip.setStyleSheet("color: gray; font-size: 11px;")
         lay.addWidget(asr_tip)
-        tip = QLabel("笔记整理始终使用 DeepSeek，不受翻译引擎影响。"
-                     "\n术语表：在课程上右键 → 术语表。"
-                     "\n免费引擎需在项目 .env 填入对应 Key（参照 .env.example）。")
+        tip = QLabel(
+            "上课建议 DeepSeek：课堂中文最顺，并吃术语表和上下文。\n"
+            "百炼 Qwen：也吃术语表，常有免费额度；质量通常不如 DeepSeek 稳。\n"
+            "Ollama：可断网、吃术语表；要自己起服务，Mac 上往往偏慢。\n"
+            "百度 / 阿里机器翻译：快、有免费额度，但不吃术语表，课名/人名易乱译。\n"
+            "腾讯：当前待修，课上不要选。\n"
+            "笔记整理始终走 DeepSeek，和这里无关。术语表在课程上右键。\n"
+            "其它引擎的 Key 写在项目 .env（参照 .env.example）。")
         tip.setWordWrap(True)
         tip.setStyleSheet("color: gray; font-size: 11px;")
         lay.addWidget(tip)
@@ -2319,7 +2319,7 @@ class _FullRow(QFrame):
         self.zh_lbl.setStyleSheet(
             f"color: #1F2329; font-size: 13.5px; font-weight: 600; background: transparent;{italic}")
         self._has_zh = bool(zh)
-        self.zh_lbl.setVisible(bool(zh))  # v3：partial 无中文时不留空行
+        self.zh_lbl.setVisible(bool(zh))  # 草稿无中文时不留空行
         self.en_lbl = QLabel(en or "")
         self.en_lbl.setWordWrap(True)
         self.en_lbl.setStyleSheet(

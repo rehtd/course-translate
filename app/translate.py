@@ -140,11 +140,9 @@ def _http_post(url, headers=None, data=None, timeout=30):
 
 
 def _sse_first_chunk(url, headers, payload, budget_chars=40, budget_sec=2.0):
-    """SSE 流式调用：取前 N 字或前 S 秒即断开返回，用于实时字幕首屏快速上屏。
+    """SSE 流式调用：取前 N 字或前 S 秒即断开返回。
 
-    LLM 是流式生成的，首段 token 远早于全句生成完；partial 预翻只取首段
-    让字幕先显示，完整句由定稿链路（非流式）随后替换。返回后连接即关闭，
-    服务端停止生成，Ollama 本地零成本，DeepSeek 按已生成 token 计费。
+    首段 token 远早于全句生成完；返回后关闭连接，服务端停止生成。
     """
     payload = dict(payload)
     payload["stream"] = True

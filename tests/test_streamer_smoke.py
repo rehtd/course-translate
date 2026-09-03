@@ -1,9 +1,9 @@
-"""v3.5 流畅度优化单元测试（offscreen，无显示）：
+"""StreamingEngine 短窗双轨与 _same_sentence 去重（offscreen）：
 1. StreamingEngine 短窗双轨：partial 用 partial_asr_win(3s)、final 用 asr_win(5s)
 2. partial_win=1.2s 触发频率
-3. _same_sentence 新判据（时间窗重叠 + 长度 + 文本覆盖）：
+3. _same_sentence（时间窗重叠 + 长度 + 文本覆盖）：
    - 同句重发 → 判同（跳过）
-   - 短窗尾部片段重发 → 判同（防重复定稿，Agent B 场景 D1）
+   - 短窗尾部片段重发 → 判同（防重复定稿）
    - 残句补全（长度增长）→ 放行
    - 窗口不重叠 → 放行
    - 快速连续不同句 + 重叠窗口 → 放行

@@ -1,4 +1,4 @@
-"""P0 修复验证：停止→续录/新建的 worker 代际隔离（2026-09-02）。
+"""停止→续录/新建的 worker 代际隔离。
 
 覆盖：
 1. final_worker 拦截跨会话任务：f_q 里 sid 不匹配当前会话的任务
@@ -151,6 +151,6 @@ for t in rec._workers:
     t.join(timeout=2)
 
 shutil.rmtree(TMP, ignore_errors=True)
-print("\n=== P0 代际隔离冒烟测试全部通过 ===")
+print("\n=== 代际隔离冒烟测试全部通过 ===")
 QTimer.singleShot(0, app.quit)
 app.processEvents()

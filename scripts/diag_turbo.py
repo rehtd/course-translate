@@ -1,4 +1,4 @@
-"""v3.7+ 实测：faster-whisper large-v3-turbo 单次短窗推理（M5）。
+"""实测 faster-whisper large-v3-turbo 单次短窗推理（M5）。
 
 对比 small/medium 的同款测试：3s 窗 beam1（草稿）+ 5s 窗 beam5（定稿）。
 下载模型约 1.6GB（首次自动下载），之后缓存。

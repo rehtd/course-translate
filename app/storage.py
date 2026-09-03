@@ -116,10 +116,9 @@ class Store:
         """启动时清理残留 recording 会话。
 
         应用启动时不可能有正在录制的会话（录制只在应用运行期间发生），
-        因此所有 status='recording' 的会话都是上次异常退出/强杀的残留
+        因此所有 status='recording' 的会话都是上次异常退出的残留
         （_finish 的 end_session 没执行成功）。把它们标记为 done，
-        否则 UI 会一直显示「录音中」（2026-09-01 session 93 教训：
-        用户点停止后强杀进程 → end_session 未执行 → 重启后仍显示录音中）。
+        否则 UI 会一直显示「录音中」。
         返回清理的会话数。
         """
         with self._lock:

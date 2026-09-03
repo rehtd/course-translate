@@ -1,4 +1,4 @@
-"""v3.6 周期定稿防腰斩单元测试：_sentence_incomplete 判定（offscreen，无显示）。
+"""周期定稿：_sentence_incomplete 判定（offscreen）。
 
 覆盖：
 - 句子未完（无终止标点）+ 正在说话（高能量/近 talk）→ 跳过定稿（True）

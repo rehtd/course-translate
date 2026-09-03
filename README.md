@@ -56,7 +56,7 @@ git clone https://github.com/rehtd/course-translate.git
 5. source .venv/bin/activate && python main.py ；或装好后双击仓库根目录的「启动同传课堂.command」（Finder 第一次可能要右键 → 打开）。
 6. 若弹「未找到 DEEPSEEK_API_KEY」，回到第 3 步。第一次识别会下载 Whisper 模型，让我连网、最好下课前先跑一次。
 
-带我用界面时：一次只引导一步，等我说「好了」再下一步。上课中途不要让我改翻译引擎或切课程/课节。课间用暂停，不要点结束。课堂翻译选 DeepSeek，术语表才吃得进去。
+带我用界面时：一次只引导一步，等我说「好了」再下一步。上课中途不要让我改翻译引擎或切课程/课节。课间用暂停，不要点结束。课堂翻译建议 DeepSeek（吃术语表）；各引擎优缺点见 docs/USAGE.md「翻译引擎怎么选」。
 
 本应用做不到（不要教我去找）：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、Windows 稳定上课。
 
@@ -73,6 +73,18 @@ git clone https://github.com/rehtd/course-translate.git
 | 其它翻译引擎（可选） | [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
 | 麦克风 | 系统设置 → 隐私与安全性 → 麦克风 |
 | Obsidian 笔记库 | 应用内「⚙ 设置」（不选则「计入笔记」写不进去） |
+
+### 翻译引擎（只影响课上中文）
+
+英文识别是本地 Whisper，笔记整理始终走 DeepSeek。上课建议 **DeepSeek**。详情见 [docs/USAGE.md](docs/USAGE.md#翻译引擎怎么选)。
+
+| 引擎 | 优点 | 缺点 |
+|------|------|------|
+| DeepSeek | 课堂中文最顺；吃术语表和上下文 | 要联网、按量计费 |
+| 阿里百炼 Qwen | 也吃术语表；常有免费额度 | 另申请 Key；质量通常不如 DeepSeek 稳 |
+| Ollama | 可断网；吃术语表 | 要自己起服务；Mac 上往往偏慢 |
+| 百度 / 阿里机器翻译 | 快、有免费额度 | 不吃术语表；课名/人名易乱译 |
+| 腾讯云 | — | 待修，课上不要选 |
 
 不要提交 `.env`、`data/`、录音；不要 `git add .`；不要 `git push`。
 

@@ -1,8 +1,7 @@
-"""SubtitleBar 冒烟测试（offscreen，无显示）。
+"""SubtitleBar 冒烟测试（offscreen）。
 
-覆盖：句子累积打字机、final 替换、短句化（保留末尾）、v3.3 固定单行高度 +
-单行省略。v3.4 起悬浮字幕只显英文（中文对照在主窗口右侧双框看），
-中文行相关断言全部移除。
+覆盖：句子累积打字机、final 替换、短句化（保留末尾）、固定单行高度与单行省略。
+悬浮字幕只显英文。
 
 运行: QT_QPA_PLATFORM=offscreen <venv>/bin/python tests/test_overlay_smoke.py
 """
@@ -89,7 +88,7 @@ def test_pause_resets():
 
 
 def test_fixed_height_stable():
-    """v3.3 稳定布局：连续更新文本，窗口高度固定不变（不再随换行跳动）。"""
+    """连续更新文本，窗口高度固定不变。"""
     bar = make_bar()
     h0 = bar.height()
     assert h0 == _H_ONE
@@ -117,7 +116,7 @@ def test_tail_clause_keeps_ending():
 
 
 def test_long_text_elided_single_line():
-    """v3.3 单行省略：窄窗口下超长文本以省略号截断，不撑破固定布局。"""
+    """窄窗口下超长文本以省略号截断，不撑破固定布局。"""
     bar = make_bar(width=500)
     long = "this is a very long english sentence that should never wrap and " \
            "it keeps going and going beyond the available width of the window"

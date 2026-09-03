@@ -15,7 +15,7 @@ class StreamingEngine:
 
         partial_asr_win：字幕草稿窗口（短窗双轨）。短窗（如 3s）只服务
         悬浮字幕，出字快；定稿用 from_t 切「上一句切点 → 现在」整段精修，
-        写入右侧框（可慢、必须准）。None 时回退为 asr_win（兼容旧行为）。
+        写入右侧框（可慢、必须准）。None 时回退为 asr_win。
         """
         self.sr = sr
         self.partial_win = partial_win
@@ -59,7 +59,7 @@ class StreamingEngine:
 
         from_t：上一句切点的音频时刻。传入则切 [from_t, audio_t] 整段
         （受 ring 长度限制），用于等句子说完后再精修，避免固定尾窗丢掉句首。
-        None 时回退为最近 asr_win 秒（兼容终端模式）。
+        None 时回退为最近 asr_win 秒。
         """
         if from_t is None:
             n = int(self.asr_win * self.sr)

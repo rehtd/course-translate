@@ -1,4 +1,4 @@
-"""字幕显示层 v2：底部电影式字幕（点击穿透）+ 右下角控制条（可交互）。
+"""底部电影式字幕（点击穿透）+ 右下角控制条（可交互）。
 
 - SubtitleBar：锚定屏幕底部，居中大字白色文本 + 阴影，电影字幕观感；
   整窗点击穿透（WA_TransparentForMouseEvents），绝不阻挡鼠标操作。
@@ -18,8 +18,8 @@ _BTN_STYLE = ("background: rgba(255,255,255,225); color: #111; border-radius: 6p
 _STOP_STYLE = ("background: rgba(220,60,60,215); color: white; border-radius: 6px;"
                "border: none; font-size: 11px;")
 
-# 字幕窗固定高度（v3.3：布局稳定不跳动的关键——高度固定、只显示英文单行，
-# 不再随文本换行数变化）：上边距12 + 英文行38 + 下边距16 = 66。
+# 字幕窗固定高度：上边距 12 + 英文行 38 + 下边距 16 = 66。
+# 高度固定、只显示英文单行，文字长短不会把窗口撑跳。
 _H_ONE = 66
 
 
@@ -27,7 +27,7 @@ def _tail_clause(text: str, max_chars: int = 72) -> str:
     """字幕短句化：只取文本最后一个句子/从句（含正在说的片段）。
 
     悬浮字幕 = 实时跟读提示，老师说多长都只显示最近一句；完整内容在
-    主窗口转写区 / 右侧中文译文区（v3.1 用户拍板：字幕不堆大长句）。
+    主窗口转写区 / 右侧中文译文区。
     先按 .!? 断句取尾句，尾句仍超长再按 ,; 收窄到最后一个从句，
     再超则取最后 max_chars 个字符窗口（按词边界切齐，保留正在说的末尾）。
     """
@@ -111,9 +111,8 @@ class SubtitleBar(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents, True)  # 关键：点击穿透
         self.setFocusPolicy(Qt.NoFocus)
 
-        # 英文单行（主视觉，放大）。v3.4：悬浮字幕只显英文（用户拍板——
-        # 中英对照改在主窗口两个积累框里看）；v3.3 稳定布局保留：单行固定
-        # 高度（关闭换行，超长 elide 省略），窗口总高固定 _H_ONE 不再跳动。
+        # 英文单行。中英对照在主窗口两个积累框里看；悬浮只跟读最近一句。
+        # 关闭换行，超长省略，窗口总高固定为 _H_ONE。
         self.en = QLabel("")
         self.en.setFont(QFont("Helvetica Neue", 28, QFont.Bold))
         self.en.setAlignment(Qt.AlignCenter)
@@ -146,7 +145,7 @@ class SubtitleBar(QWidget):
         """固定高度布局：窗口高度恒定，文本长短不改变窗口大小。
 
         「字幕稳定不跳」的核心——高度固定、锚点固定，文字变化不会引起
-        字幕条位置与尺寸跳动（v3.3 前按换行数重算高度是跳动主因）。
+        字幕条位置与尺寸跳动。
         """
         self.setFixedHeight(_H_ONE)
         self._anchor()
@@ -229,7 +228,6 @@ class SubtitleBar(QWidget):
         if new_en == self._acc_en:
             return  # 内容没变
         self._acc_en = new_en
-        # v3.1 短句化（尾句/尾从句）；v3.3 单行省略 + 上限适配单行宽度
         self._set_en(_tail_clause(new_en, max_chars=56) + " …")
         QTimer.singleShot(0, self._relayout)
 
