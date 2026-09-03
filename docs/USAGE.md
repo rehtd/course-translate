@@ -4,7 +4,7 @@
 
 仓库是私有的。克隆前需要被加为 GitHub collaborator。
 
-**推荐分发方式：** 把人加进私有仓库，让他们用自己习惯的 **编码 Agent**（Cursor、Claude Code、GitHub Copilot、Windsurf、Cline 等）打开本仓库，对 Agent 说：「按 docs/USAGE.md 安装」。人只需要准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。
+**推荐分发方式：** 把人加进私有仓库，让他们用自己习惯的编码 Agent 打开本仓库，说：「按 docs/USAGE.md 安装，按 docs/AGENT_GUIDE.md 引导我使用」。人只需要准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。
 
 不做成 .dmg / .exe 给人下载。Whisper 模型大、每人要自己的 Key、Windows 还没改完；克隆 + Agent 比打包安装包合适。
 
@@ -21,7 +21,7 @@
 
 ## Agent 操作流程
 
-这份流程不绑某一家产品。只要能读仓库、跑终端的编码 Agent 都可以。把 [AGENTS.md](../AGENTS.md) 和本文一起遵守。
+这份流程不绑某一家产品。只要能读仓库、跑终端的编码 Agent 都可以。遵守 [AGENTS.md](../AGENTS.md)。装好之后，带着用户点界面请改读 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
 
 按顺序做。任何一步需要 Key 或系统权限，停下来让使用者自己完成，不要代填、不要朗读 `.env`。
 

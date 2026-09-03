@@ -1,6 +1,11 @@
 # Agent 须知
 
-你是编码助手即可，不限产品。完整安装、上课、课后步骤见 [docs/USAGE.md](docs/USAGE.md)。先读那份，再动手。不要做安装包或改成「下载即用的软件」。
+你是编码助手即可，不限产品。
+
+- 安装、Key、禁令：[docs/USAGE.md](docs/USAGE.md)
+- **有哪些操作、怎么带着用户点界面：[docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)**（先读操作总表）
+
+不要做安装包或改成「下载即用的软件」。不要打开或复述用户的 `.env`。
 
 硬性约束：
 
