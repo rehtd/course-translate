@@ -25,8 +25,9 @@ from app.asr import Transcriber
 from app.overlay import ControlChip, SubtitleBar, make_floating
 from app.recorder import Recorder
 from app.storage import Store
-from app.translate import (make_translator, parse_glossary_text,
-                           format_glossary_text, translate_with_retry)
+from app.translate import (format_glossary_text, llm_ready, make_translator,
+                           parse_glossary_text, provider_ready, resolve_provider,
+                           translate_with_retry)
 
 DEFAULT_COURSES = [
     ("EF5560", "Fintech and AI in Finance"),
@@ -40,7 +41,7 @@ _PROVIDER_NAMES = {
     "deepseek": "DeepSeek（课堂翻译，支持术语表）",
     "dashscope": "阿里百炼 Qwen（支持术语表，免费额度）",
     "baidu": "百度翻译（机器翻译，无术语表/上下文）",
-    "tencent": "腾讯云机器翻译（待修；无术语表/上下文）",
+    "tencent": "腾讯云机器翻译（无术语表/上下文）",
     "alibaba": "阿里云机器翻译（无术语表/上下文）",
     "ollama": "本地/远程 Ollama（支持术语表，断网可用）",
 }
@@ -248,9 +249,13 @@ class MainWindow(QMainWindow):
     def __init__(self, store: Store, *, warmup: bool = True):
         super().__init__()
         self.store = store
-        # 启动时优先读取设置里保存的翻译引擎，避免重启后悄悄退回 DeepSeek
-        self.tsl = make_translator(settings.load().get("translate_provider")
-                                   or config.TRANSLATE_PROVIDER)
+        # 设置里选的引擎优先；没 Key 则落到已填写的机器翻译（不改 settings.json）
+        preferred = (settings.load().get("translate_provider")
+                     or config.TRANSLATE_PROVIDER or "deepseek")
+        self._translate_preferred = str(preferred).strip().lower()
+        chosen = resolve_provider(self._translate_preferred)
+        self._translate_provider = chosen or self._translate_preferred
+        self.tsl = make_translator(self._translate_provider)
         self.recorder: Recorder | None = None
         self.bar: SubtitleBar | None = None
         self.chip: ControlChip | None = None
@@ -268,6 +273,11 @@ class MainWindow(QMainWindow):
         self.resize(1080, 680)
         self.setStyleSheet(_APP_QSS)
         self._build_ui()
+        if chosen and chosen != self._translate_preferred:
+            pref_name = _PROVIDER_NAMES.get(self._translate_preferred, self._translate_preferred)
+            use_name = _PROVIDER_NAMES.get(chosen, chosen)
+            QTimer.singleShot(0, lambda pn=pref_name, un=use_name: self.status.showMessage(
+                f"未配置「{pn}」，本场用「{un}」。可在设置里改引擎以免每次提示。", 10000))
         self._seed_courses()
         if warmup:
             self._warmup_model()
@@ -1353,6 +1363,12 @@ class MainWindow(QMainWindow):
     def on_save_note(self):
         if not self.current_session:
             return
+        if not llm_ready():
+            QMessageBox.information(
+                self, "计入笔记",
+                "笔记整理需要 DeepSeek API Key（写入 .env 的 DEEPSEEK_API_KEY）。\n"
+                "上课翻译可以只用腾讯云、百度、阿里等，不必为此退出应用。")
+            return
         sess = self.store.get_session(self.current_session)
         cid = sess[1] if sess else None
         dlg = _NoteDialog(self, self.store, cid, self.current_session)
@@ -1510,11 +1526,17 @@ class MainWindow(QMainWindow):
                 if recording:
                     self.status.showMessage("录制中不能切换翻译引擎，结束本次录音后生效", 5000)
                 else:
-                    # 翻译引擎切换：下次录制生效（重建 recorder 与翻译器）
+                    if new_provider != "ollama" and not provider_ready(new_provider):
+                        QMessageBox.information(
+                            self, "翻译引擎",
+                            f"「{_PROVIDER_NAMES.get(new_provider, new_provider)}」还没在 .env 填 Key。\n"
+                            "本场会尽量用已填写的其它引擎。笔记整理仍需要 DeepSeek。")
+                    chosen = resolve_provider(new_provider) or new_provider
                     self.recorder = None
-                    self.tsl = make_translator(new_provider)
+                    self.tsl = make_translator(chosen)
+                    self._translate_provider = chosen
                     self.status.showMessage(
-                        f"翻译引擎已切换为 {_PROVIDER_NAMES.get(new_provider, new_provider)}（下次录制生效）",
+                        f"翻译引擎已切换为 {_PROVIDER_NAMES.get(chosen, chosen)}（下次录制生效）",
                         5000)
 
     # ---------- 课程管理（新增/重命名/删除） ----------
@@ -1846,6 +1868,12 @@ class MainWindow(QMainWindow):
     def _extract_glossary(self, sid):
         if self._extracting_gloss or self._recording_active:
             return
+        if not llm_ready():
+            QMessageBox.information(
+                self, "提取术语",
+                "从本课提取术语需要 DeepSeek API Key（写入 .env 的 DEEPSEEK_API_KEY）。\n"
+                "上课翻译可以只用腾讯云等，不必为此退出应用。")
+            return
         sess = self.store.get_session(sid)
         cid = sess[1] if sess else None
         if not cid:
@@ -2159,12 +2187,10 @@ class _SettingsDialog(QDialog):
         asr_tip.setStyleSheet("color: gray; font-size: 11px;")
         lay.addWidget(asr_tip)
         tip = QLabel(
-            "上课建议 DeepSeek：课堂中文最顺，并吃术语表和上下文。\n"
-            "百炼 Qwen：也吃术语表，常有免费额度；质量通常不如 DeepSeek 稳。\n"
-            "Ollama：可断网、吃术语表；要自己起服务，Mac 上往往偏慢。\n"
-            "百度 / 阿里机器翻译：快、有免费额度，但不吃术语表，课名/人名易乱译。\n"
-            "腾讯：当前待修，课上不要选。\n"
-            "笔记整理始终走 DeepSeek，和这里无关。术语表在课程上右键。\n"
+            "任选已填 Key 的引擎即可上课，不必用 DeepSeek。\n"
+            "DeepSeek / 百炼 Qwen / Ollama：吃术语表和上下文；课堂中文 DeepSeek 通常最顺。\n"
+            "腾讯 / 百度 / 阿里机器翻译：快、有免费额度，但不吃术语表，课名/人名易乱译。\n"
+            "笔记整理、从本课提取术语始终走 DeepSeek，和这里无关。术语表在课程上右键。\n"
             "其它引擎的 Key 写在项目 .env（参照 .env.example）。")
         tip.setWordWrap(True)
         tip.setStyleSheet("color: gray; font-size: 11px;")

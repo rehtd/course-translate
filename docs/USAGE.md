@@ -4,15 +4,16 @@
 
 仓库是公开的：`git clone https://github.com/rehtd/course-translate.git`。任何人都能拉，**不要 `git push`**（只有仓库主人能推）。
 
-同学：把 [README](../README.md) 或 [AGENT_PROMPT.md](AGENT_PROMPT.md) 里的提示词**整段**发给编码 Agent，不要只说「帮我装一下」。人准备 Python 3.11+、自己的 DeepSeek Key、麦克风权限。不要做成安装包给人下载。不要拷贝别人的 `.env` / `.venv` / `data/`。
+同学：把 [README](../README.md) 或 [AGENT_PROMPT.md](AGENT_PROMPT.md) 里的提示词**整段**发给编码 Agent，不要只说「帮我装一下」。人准备 Python 3.11+、至少一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可）、麦克风权限。不要做成安装包给人下载。不要拷贝别人的 `.env` / `.venv` / `data/`。
 
 ---
 
 ## 密钥（必读）
 
-- 启动必须有 **你自己的** `DEEPSEEK_API_KEY`（笔记、术语提取、建议的课堂翻译都走 DeepSeek）。
+- 启动只要有 **至少一种** 翻译配置：腾讯云、百度、阿里机器翻译、阿里百炼、DeepSeek，或在 `.env` 设 `TRANSLATE_PROVIDER=ollama`。不必先有 DeepSeek。
+- 课后「计入笔记」、从本课提取术语才需要 `DEEPSEEK_API_KEY`。
 - DeepSeek：打开 [用量与控制台](https://platform.deepseek.com/usage)，在同一控制台创建 **API Key**（不要用别人的，也不要向别人要）。
-- 阿里云 / 百度 / 腾讯等机器翻译 Key 的申请步骤可参考：[CSDN 教程（阿里等翻译 API）](https://blog.csdn.net/weixin_44253490/article/details/126365385)。官方入口也写在 [`.env.example`](../.env.example) 各行注释里。上课仍建议 DeepSeek；腾讯在设置里标了待修，课上不要选。
+- 阿里云 / 百度 / 腾讯等机器翻译 Key 的申请步骤可参考：[CSDN 教程（阿里等翻译 API）](https://blog.csdn.net/weixin_44253490/article/details/126365385)。官方入口也写在 [`.env.example`](../.env.example) 各行注释里。腾讯云机器翻译可用，不吃术语表。
 - 只允许出现在你电脑上的 `.env`。仓库里的 `.env.example` 全是占位符。
 - **不要**拷贝别人的 `.env`，**不要**把 `.env` 发给别人或推进 Git。
 
@@ -51,13 +52,11 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-然后告诉使用者：打开 [DeepSeek 控制台](https://platform.deepseek.com/usage) 自己申请 API Key，用编辑器打开 `.env`，把 `DEEPSEEK_API_KEY=` 后面换成自己的。**Agent 到此停止，等使用者说已经填好。不要代填，不要 `git push`。**
-
-若还要阿里/百度/腾讯机器翻译，把这篇教程发给用户自己申请，填进 `.env` 对应行：[CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385)。
+然后告诉使用者：在 `.env` 里**至少填一种**翻译 Key（腾讯云 / 百度 / 阿里 / 百炼 / DeepSeek 均可）。课后笔记才需要 DeepSeek。腾讯云入口见 `.env.example` 注释；其它机器翻译可参考 [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385)。**Agent 到此停止，等使用者说已经填好。不要代填，不要 `git push`。**
 
 若 **已经存在** `.env`：不要覆盖、不要 `cat .env`、不要把内容写进聊天或 commit。
 
-其它翻译引擎可以后再填。上课建议 DeepSeek。腾讯在设置里标了待修，课上不要选。
+只打算用本机 Ollama、不填任何云 Key 时，在 `.env` 设 `TRANSLATE_PROVIDER=ollama`。
 
 ### 4. 麦克风
 
@@ -76,7 +75,7 @@ python main.py
 
 或在 Finder 双击仓库根目录的 `启动同传课堂.command`。
 
-若弹「未找到 DEEPSEEK_API_KEY」，回到第 3 步。
+若弹「缺少翻译配置」，回到第 3 步，确认至少填了一种真实 Key（`.env.example` 里的占位符不算）。
 
 第一次识别会下载 Whisper 模型（体积大，缓存在用户目录）。连校园网或先下完再上课。
 
@@ -94,9 +93,9 @@ python main.py
 ### 7. 课后
 
 - 点该课节：一句一块上英下中，双击回听。
-- 「计入笔记」：英中都会送给 DeepSeek 整理；课程/课节右键可上传 PDF 课件（要能选中文字的 PDF；扫描件抽不出字；PPT 先另存 PDF）。
+- 「计入笔记」：英中都会送给 DeepSeek 整理（没填 DeepSeek 时按钮会说明，不影响上课）；课程/课节右键可上传 PDF 课件（要能选中文字的 PDF；扫描件抽不出字；PPT 先另存 PDF）。
 - 课程右键「术语表」可手改；课节右键「从本课提取术语」勾选后才写入，**下一节课**翻译才会明显用上。
-- 设置里课堂翻译选 DeepSeek / 百炼 / Ollama，术语表才会写进译文；百度、阿里机器翻译吃不进去。
+- 设置里课堂翻译选 DeepSeek / 百炼 / Ollama，术语表才会写进译文；腾讯、百度、阿里机器翻译吃不进去。
 
 ### 8. Agent 禁止做的事
 
@@ -116,7 +115,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-编辑 `.env` 填自己的 DeepSeek Key，然后 `python main.py`。上课步骤同第 6 节。
+编辑 `.env` 至少填一种翻译 Key，然后 `python main.py`。上课步骤同第 6 节。课后笔记另需 DeepSeek。
 
 ---
 
@@ -124,16 +123,18 @@ cp .env.example .env
 
 设置里的「翻译引擎」只管**课上右侧中文译文**（定稿入库的中文也走它）。英文识别是本地 Whisper，笔记整理始终走 DeepSeek，都不看这个选项。
 
-上课建议 **DeepSeek**。术语表只有 DeepSeek / 阿里百炼 / Ollama 会写进翻译提示。录制中不能切换，下课再改，下一场生效。
+不必用 DeepSeek 才能上课。设置里选了某引擎但没填 Key 时，会临时用已填写的其它引擎（不自动选 Ollama，也不改本机设置）。录制中不能切换，下课再改，下一场生效。
+
+术语表只有 DeepSeek / 阿里百炼 / Ollama 会写进翻译提示。
 
 | 引擎 | 优点 | 缺点 |
 |------|------|------|
-| **DeepSeek** | 课堂中文最顺；吃术语表和前后句上下文；启动已经要填这个 Key | 要联网；按量计费 |
+| **DeepSeek** | 课堂中文最顺；吃术语表和前后句上下文；课后笔记也用它 | 要联网；按量计费；上课不是必须 |
 | **阿里百炼 Qwen** | 同样吃术语表和上下文；新用户常有免费额度 | 要另申请百炼 Key；课堂用语通常不如 DeepSeek 稳 |
-| **Ollama** | 本机或局域网，可断网；吃术语表；不花云端翻译费 | 先自己起 Ollama 并拉模型；Mac 上大模型往往偏慢 |
+| **Ollama** | 本机或局域网，可断网；吃术语表；不花云端翻译费 | 先自己起 Ollama 并拉模型；Mac 上大模型往往偏慢；只打算用它时需设 `TRANSLATE_PROVIDER=ollama` |
+| **腾讯云机器翻译** | 快；每月约 500 万字符额度 | 不吃术语表、不管上下文；课名/人名易乱译 |
 | **百度翻译** | 机器翻译，反应快；有免费字符额度 | 不吃术语表、不管上下文；课名/人名易乱译；标准版大约每秒只能 1 个请求 |
-| **阿里云机器翻译** | 和百度同类：快、有新人额度 | 不吃术语表、不管上下文 |
-| **腾讯云** | — | 当前待修，课上不要选 |
+| **阿里云机器翻译** | 和腾讯/百度同类：快、有新人额度 | 不吃术语表、不管上下文 |
 
 百度 / 阿里 / 腾讯的申请步骤见上面「密钥」里的 CSDN 链接。百炼填 `.env` 的 `DASHSCOPE_API_KEY`；Ollama 默认本机 `http://127.0.0.1:11434/v1`。
 

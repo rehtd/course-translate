@@ -20,10 +20,10 @@
 
 1. 克隆仓库：`git clone https://github.com/rehtd/course-translate.git`
 2. Python 3.11+、建 `.venv`、装 `requirements.txt`
-3. 用户自己到 [DeepSeek 控制台](https://platform.deepseek.com/usage) 申请 Key，写入本地 `.env`（阿里等机器翻译教程：[CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)）
+3. 用户自己在 `.env` 至少填一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可；笔记才需要 DeepSeek）。机器翻译教程：[CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
 4. 允许麦克风
 5. 启动应用（`python main.py` 或双击 `启动同传课堂.command`）
-6. 设置：Obsidian 库路径；课堂翻译选 DeepSeek；识别模式用默认即可
+6. 设置：Obsidian 库路径；课堂翻译选已填 Key 的引擎（腾讯云可用）；识别模式用默认即可
 
 **B. 课前准备**
 
@@ -74,7 +74,7 @@
 |--------|----|
 | 帮我装 / 打不开 | A1–A5，见 USAGE.md。若用户没给仓库地址，先让他复制 README 里的提示词 |
 | 帮我推到 GitHub / push | 拒绝。不要 `git push` |
-| 没有 Key / 弹缺少 DEEPSEEK | A3，停下来等用户自己填 |
+| 没有翻译 Key / 弹缺少翻译配置 | A3，停下来等用户自己填至少一种引擎 |
 | 没声音 / 识别不到 | A4，然后确认选对了课程再新建一节 |
 | 设置笔记库 / 翻译引擎 | A6 |
 | 加一门课 | B7 |
@@ -103,7 +103,7 @@
 常见卡住：
 
 - `python3` 是 3.9：停下来让用户先装 3.11+（python.org 或 Homebrew），不要用系统 Python 建 venv。
-- 弹缺少 `DEEPSEEK_API_KEY`：回到 USAGE 第 3 步，等用户自己填。不要代填、不要 `cat .env`。
+- 弹「缺少翻译配置」：回到 USAGE 第 3 步，等用户自己填至少一种真实 Key（占位符不算）。不要代填、不要 `cat .env`。
 - Finder 双击 `.command` 打不开：让用户右键 → 打开；或改用终端 `source .venv/bin/activate && python main.py`。
 - 没声音 / 开录失败：麦克风权限；勾完后**完全退出再打开**。
 - 切到 PPT 后字幕不见了：确认 `pip install -r requirements.txt` 已装完（含 `pyobjc-framework-Cocoa`）；菜单「字幕」可再显示。
@@ -114,11 +114,10 @@
 
 - **Obsidian vault**：浏览到用户的库根目录。不选则「计入笔记」写不进去。
 - 笔记子目录默认 `01-章节笔记`，概念卡默认 `02-概念卡片`，一般不用改。
-- **翻译引擎**：上课建议 DeepSeek。对比见 [USAGE.md「翻译引擎怎么选」](USAGE.md#翻译引擎怎么选)。
+- **翻译引擎**：任选已填 Key 的即可上课，不必 DeepSeek。对比见 [USAGE.md「翻译引擎怎么选」](USAGE.md#翻译引擎怎么选)。
   - DeepSeek / 百炼 / Ollama：吃术语表和上下文。
-  - 百度 / 阿里机器翻译：快、有免费额度，但不吃术语表，课名容易乱。
-  - 腾讯：待修，课上不要选。
-  - 笔记整理始终走 DeepSeek，和这里无关。
+  - 腾讯 / 百度 / 阿里机器翻译：快、有免费额度，但不吃术语表，课名容易乱。
+  - 笔记整理、提取术语始终走 DeepSeek，和这里无关。
 - 识别模式：默认「实时」。只有框内英文总被环境音带跑时再试「精准」（字幕仍然短窗，不会明显变慢）。
 
 录制中翻译引擎是锁住的，下课再改，下一场才生效。

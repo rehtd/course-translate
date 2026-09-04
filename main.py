@@ -17,11 +17,28 @@ def run_app():
     from app.storage import Store
     from app.ui.main_window import MainWindow
 
-    if not config.DEEPSEEK_API_KEY:
+    from app.translate import resolve_provider
+
+    preferred = None
+    try:
+        from app import settings
+        preferred = settings.load().get("translate_provider")
+    except Exception:  # noqa: BLE001
+        preferred = None
+    preferred = preferred or config.TRANSLATE_PROVIDER
+    if not resolve_provider(preferred):
         app = QApplication([])
         QMessageBox.critical(
-            None, "缺少配置",
-            "未找到 DEEPSEEK_API_KEY。\n请在项目 .env 中填写（参照 .env.example）。")
+            None, "缺少翻译配置",
+            "还没有可用的翻译配置。上课不必用 DeepSeek。\n\n"
+            "请在项目 .env 里至少填一种（参照 .env.example）：\n"
+            "· 腾讯云：TENCENT_SECRET_ID / TENCENT_SECRET_KEY\n"
+            "· 百度：BAIDU_APPID / BAIDU_SECRET\n"
+            "· 阿里云机器翻译：ALI_ACCESS_KEY_ID / ALI_ACCESS_KEY_SECRET\n"
+            "· 阿里百炼：DASHSCOPE_API_KEY\n"
+            "· DeepSeek：DEEPSEEK_API_KEY（课后笔记也用它）\n"
+            "· 或设 TRANSLATE_PROVIDER=ollama 并自己启动 Ollama\n\n"
+            "填好后可在「设置」里选对应引擎。")
         return 1
 
     # 运行日志落盘，便于排查问题（每次写入立即 flush，异常/崩溃也能留痕）
@@ -67,6 +84,10 @@ def main():
     if args.agent_note is not None:
         from pathlib import Path
         from app.note_agent import NoteAgent
+        from app.translate import llm_ready
+        if not llm_ready():
+            print("ERROR: 笔记整理需要 DEEPSEEK_API_KEY（上课翻译可用腾讯云等，不必填 DeepSeek）")
+            return 1
         from app.storage import Store
         from app.vault_notes import meta_from_settings, render_lecture, write_vault
         store = Store()

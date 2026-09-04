@@ -47,6 +47,42 @@ def test_main_window_builds():
         print("PASS test_main_window_builds")
 
 
+def test_main_window_builds_with_tencent_only():
+    """没有 DeepSeek Key、只填腾讯云时，窗口仍能起来并使用腾讯翻译。"""
+    from app import config
+    from app import settings as st
+    from app.ui.main_window import _PROVIDER_NAMES
+
+    assert "待修" not in _PROVIDER_NAMES["tencent"]
+    names = (
+        "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "BAIDU_APPID", "BAIDU_SECRET",
+        "TENCENT_SECRET_ID", "TENCENT_SECRET_KEY", "ALI_ACCESS_KEY_ID",
+        "ALI_ACCESS_KEY_SECRET", "TRANSLATE_PROVIDER",
+    )
+    old = {n: getattr(config, n) for n in names}
+    old_load = st.load
+    try:
+        for n in names:
+            setattr(config, n, "deepseek" if n == "TRANSLATE_PROVIDER" else "")
+        config.TENCENT_SECRET_ID = "AKIDTESTONLY"
+        config.TENCENT_SECRET_KEY = "TencentTestKeyOnly"
+        st.load = lambda: {
+            "vault": "", "notes_subdir": "01-章节笔记",
+            "concepts_subdir": "02-概念卡片",
+            "translate_provider": "deepseek", "asr_mode": "realtime",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(Path(tmp) / "smoke.db")
+            w = MainWindow(store, warmup=False)
+            assert w.tsl.name == "tencent"
+            w.close()
+    finally:
+        for k, v in old.items():
+            setattr(config, k, v)
+        st.load = old_load
+    print("PASS test_main_window_builds_with_tencent_only")
+
+
 def test_asr_modes_constant():
     assert set(_ASR_MODES) == {"realtime", "precise"}
     print("PASS test_asr_modes_constant")

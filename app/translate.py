@@ -602,8 +602,50 @@ class OllamaTranslator(_GlossaryMixin):
 
 
 # ---------------------------------------------------------------- 工厂
+def _cred(val: str) -> bool:
+    """占位符（your- / sk-your-）不算已配置。"""
+    v = (val or "").strip()
+    if not v:
+        return False
+    low = v.lower()
+    return not (low.startswith("your-") or low.startswith("sk-your-"))
+
+
+def provider_ready(provider: str) -> bool:
+    p = (provider or "").strip().lower()
+    if p == "deepseek":
+        return _cred(config.DEEPSEEK_API_KEY)
+    if p == "dashscope":
+        return _cred(config.DASHSCOPE_API_KEY)
+    if p == "baidu":
+        return _cred(config.BAIDU_APPID) and _cred(config.BAIDU_SECRET)
+    if p == "tencent":
+        return _cred(config.TENCENT_SECRET_ID) and _cred(config.TENCENT_SECRET_KEY)
+    if p == "alibaba":
+        return _cred(config.ALI_ACCESS_KEY_ID) and _cred(config.ALI_ACCESS_KEY_SECRET)
+    if p == "ollama":
+        return True
+    return False
+
+
+def llm_ready() -> bool:
+    """课后笔记、术语提取走 DeepSeek，与课堂翻译引擎无关。"""
+    return provider_ready("deepseek")
+
+
+def resolve_provider(preferred: str | None = None) -> str | None:
+    """课堂翻译引擎：设置优先；该引擎没 Key 则落到已填写的机器翻译。不自动选 Ollama。"""
+    pref = (preferred or config.TRANSLATE_PROVIDER or "deepseek").strip().lower()
+    if provider_ready(pref):
+        return pref
+    for p in ("tencent", "baidu", "alibaba", "dashscope", "deepseek"):
+        if p != pref and provider_ready(p):
+            return p
+    return None
+
+
 def make_translator(provider: str | None = None):
-    provider = provider or config.TRANSLATE_PROVIDER
+    provider = provider or resolve_provider() or config.TRANSLATE_PROVIDER
     if provider == "baidu":
         return BaiduTranslator()
     if provider == "tencent":

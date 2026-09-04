@@ -10,7 +10,7 @@ from app.translate import (  # noqa: E402
     DeepSeekTranslator, asr_initial_prompt, build_context_user,
     en_truncated, format_glossary_text, glossary_prompt, is_retryable,
     join_en, looks_cut, parse_glossary_text, pending_truncated, should_stitch,
-    translate_with_retry,
+    translate_with_retry, provider_ready, resolve_provider, llm_ready,
 )
 
 
@@ -159,6 +159,74 @@ def test_upsert_glossary_keeps_other_terms():
         assert got["B"] == "乙"
         assert got["C"] == "丙"
         print("PASS upsert_glossary_keeps_other_terms")
+
+
+_CFG_KEYS = (
+    "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "BAIDU_APPID", "BAIDU_SECRET",
+    "TENCENT_SECRET_ID", "TENCENT_SECRET_KEY", "ALI_ACCESS_KEY_ID",
+    "ALI_ACCESS_KEY_SECRET", "TRANSLATE_PROVIDER",
+)
+
+
+def _isolate_translate_keys(**kwargs):
+    from app import config
+    old = {n: getattr(config, n) for n in _CFG_KEYS}
+    for n in _CFG_KEYS:
+        setattr(config, n, "deepseek" if n == "TRANSLATE_PROVIDER" else "")
+    for k, v in kwargs.items():
+        setattr(config, k, v)
+    return old
+
+
+def _restore_translate_keys(old):
+    from app import config
+    for k, v in old.items():
+        setattr(config, k, v)
+
+
+def test_placeholders_are_not_ready():
+    old = _isolate_translate_keys(
+        DEEPSEEK_API_KEY="sk-your-key-here",
+        DASHSCOPE_API_KEY="sk-your-dashscope-key",
+        TENCENT_SECRET_ID="your-tencent-secret-id",
+        TENCENT_SECRET_KEY="your-tencent-secret-key",
+    )
+    try:
+        assert not provider_ready("deepseek")
+        assert not provider_ready("dashscope")
+        assert not provider_ready("tencent")
+        assert not llm_ready()
+        assert resolve_provider("deepseek") is None
+    finally:
+        _restore_translate_keys(old)
+    print("PASS placeholders_are_not_ready")
+
+
+def test_resolve_provider_falls_back_to_tencent():
+    old = _isolate_translate_keys(
+        TENCENT_SECRET_ID="AKIDTESTONLY",
+        TENCENT_SECRET_KEY="TencentTestKeyOnly",
+    )
+    try:
+        assert not provider_ready("deepseek")
+        assert provider_ready("tencent")
+        assert resolve_provider("deepseek") == "tencent"
+        assert resolve_provider("tencent") == "tencent"
+        assert resolve_provider(None) == "tencent"
+    finally:
+        _restore_translate_keys(old)
+    print("PASS resolve_provider_falls_back_to_tencent")
+
+
+def test_resolve_provider_does_not_auto_pick_ollama():
+    old = _isolate_translate_keys()
+    try:
+        assert provider_ready("ollama")
+        assert resolve_provider("deepseek") is None
+        assert resolve_provider("ollama") == "ollama"
+    finally:
+        _restore_translate_keys(old)
+    print("PASS resolve_provider_does_not_auto_pick_ollama")
 
 
 if __name__ == "__main__":
