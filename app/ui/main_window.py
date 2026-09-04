@@ -148,19 +148,26 @@ def _context_menu(parent) -> QMenu:
 
 def _light_combo(combo: QComboBox) -> QComboBox:
     """浅色下拉。macOS 系统深色弹出列表会无视 QSS，需改用 Fusion 绘制。"""
-    combo.setStyle(QStyleFactory.create("Fusion"))
+    fusion = QStyleFactory.create("Fusion")
+    combo.setStyle(fusion)
     pal = QPalette()
     bg = QColor("#FFFFFF")
     fg = QColor("#1F2329")
-    pal.setColor(QPalette.Window, bg)
-    pal.setColor(QPalette.Base, bg)
-    pal.setColor(QPalette.Button, bg)
-    pal.setColor(QPalette.Text, fg)
-    pal.setColor(QPalette.WindowText, fg)
-    pal.setColor(QPalette.ButtonText, fg)
-    pal.setColor(QPalette.HighlightedText, fg)
-    pal.setColor(QPalette.Highlight, QColor("#E7EDFD"))
+    for group in (QPalette.Active, QPalette.Inactive, QPalette.Disabled):
+        pal.setColor(group, QPalette.Window, bg)
+        pal.setColor(group, QPalette.Base, bg)
+        pal.setColor(group, QPalette.Button, bg)
+        pal.setColor(group, QPalette.AlternateBase, bg)
+        pal.setColor(group, QPalette.Text, fg)
+        pal.setColor(group, QPalette.WindowText, fg)
+        pal.setColor(group, QPalette.ButtonText, fg)
+        pal.setColor(group, QPalette.HighlightedText, fg)
+        pal.setColor(group, QPalette.Highlight, QColor("#E7EDFD"))
     combo.setPalette(pal)
+    view = combo.view()
+    view.setStyle(fusion)
+    view.setPalette(pal)
+    view.setAutoFillBackground(True)
     return combo
 
 
