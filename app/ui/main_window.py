@@ -8,7 +8,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                                QFrame, QHBoxLayout, QInputDialog, QLabel,
@@ -60,11 +60,19 @@ QMainWindow, QDialog { background: #F4F5F7; }
 QWidget { font-family: "PingFang SC", "Helvetica Neue"; font-size: 13px; color: #1F2329; }
 
 QComboBox, QLineEdit {
-    background: white; border: 1px solid #D8DBE0; border-radius: 6px;
+    background: #FFFFFF; color: #1F2329; border: 1px solid #D8DBE0; border-radius: 6px;
     padding: 5px 8px; selection-background-color: #4F6BED;
 }
 QComboBox:focus, QLineEdit:focus { border-color: #4F6BED; }
 QComboBox::drop-down { border: none; width: 20px; }
+QComboBox QAbstractItemView {
+    background: #FFFFFF;
+    color: #1F2329;
+    selection-background-color: #E7EDFD;
+    selection-color: #1F2329;
+    border: 1px solid #D8DBE0;
+    outline: none;
+}
 
 QPushButton {
     background: white; border: 1px solid #D8DBE0; border-radius: 6px; padding: 5px 12px;
@@ -136,6 +144,24 @@ def _context_menu(parent) -> QMenu:
     menu = QMenu(parent)
     menu.setStyle(QStyleFactory.create("Fusion"))
     return menu
+
+
+def _light_combo(combo: QComboBox) -> QComboBox:
+    """浅色下拉。macOS 系统深色弹出列表会无视 QSS，需改用 Fusion 绘制。"""
+    combo.setStyle(QStyleFactory.create("Fusion"))
+    pal = QPalette()
+    bg = QColor("#FFFFFF")
+    fg = QColor("#1F2329")
+    pal.setColor(QPalette.Window, bg)
+    pal.setColor(QPalette.Base, bg)
+    pal.setColor(QPalette.Button, bg)
+    pal.setColor(QPalette.Text, fg)
+    pal.setColor(QPalette.WindowText, fg)
+    pal.setColor(QPalette.ButtonText, fg)
+    pal.setColor(QPalette.HighlightedText, fg)
+    pal.setColor(QPalette.Highlight, QColor("#E7EDFD"))
+    combo.setPalette(pal)
+    return combo
 
 
 class _PairDelegate(QStyledItemDelegate):
@@ -2165,7 +2191,7 @@ class _NoteDialog(QDialog):
         self.result_course_id = course_id
         lay = QVBoxLayout(self)
         lay.addWidget(QLabel("目标课程"))
-        self.course_combo = QComboBox()
+        self.course_combo = _light_combo(QComboBox())
         self.course_combo.addItem("（不关联课程）", None)
         self.idx_map = {}
         for i, (cid, code, name) in enumerate(store.list_courses(), start=1):
@@ -2225,7 +2251,7 @@ class _SettingsDialog(QDialog):
         self.concepts_edit = QLineEdit(s.get("concepts_subdir", "02-概念卡片"))
         lay.addWidget(self.concepts_edit)
         lay.addWidget(QLabel("翻译引擎（实时字幕翻译）"))
-        self.provider_combo = QComboBox()
+        self.provider_combo = _light_combo(QComboBox())
         cur = s.get("translate_provider", "deepseek")
         for idx, (key, label) in enumerate(_PROVIDER_NAMES.items()):
             self.provider_combo.addItem(label, key)
@@ -2241,7 +2267,7 @@ class _SettingsDialog(QDialog):
             lock_tip.setStyleSheet("color: #E5484D; font-size: 11px;")
             lay.addWidget(lock_tip)
         lay.addWidget(QLabel("识别模式（识别精度 vs 字幕延迟）"))
-        self.asr_combo = QComboBox()
+        self.asr_combo = _light_combo(QComboBox())
         for idx, (key, label) in enumerate(_ASR_MODES.items()):
             self.asr_combo.addItem(label, key)
             if key == s.get("asr_mode", "realtime"):
@@ -2488,7 +2514,7 @@ class _TranscriptDialog(QDialog):
         head = QHBoxLayout()
         self.info = QLabel("")
         self.info.setStyleSheet("color: #8A9099; font-size: 11px;")
-        self.lang_combo = QComboBox()
+        self.lang_combo = _light_combo(QComboBox())
         for key, label in self._LANG_LABELS:
             self.lang_combo.addItem(label, key)
         self.lang_combo.setCurrentIndex(0)
