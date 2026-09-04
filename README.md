@@ -54,11 +54,11 @@ flowchart LR
 
 能：上课同传、课后回看、课程术语表、计入笔记（可选）。
 
-不能：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、把 Windows 当稳定上课机。也不是「下载即用」的安装包。
+不能：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍。也不是「下载即用」的安装包。默认分支 `main` 是 macOS 上课版；**Windows 请用 `feat/windows`**（只换系统壳，识别/翻译与 Mac 相同）。
 
 ## 你需要准备
 
-- **macOS 13+**，**Python 3.11+**（系统自带 3.9 不够）
+- **macOS 13+**，或 **Windows 10/11**（须 clone `feat/windows`）；**Python 3.11+**（Windows 推荐 3.11 / 3.12）
 - `.env` 里至少一种翻译 Key（腾讯 / 百度 / 阿里 / 百炼 / DeepSeek / 或本机 Ollama）。课后笔记才需要 DeepSeek。
 - **第一次识别会下载本地 Whisper 模型**（约数百 MB，缓存在用户目录，不进 Git）。需要联网；最好下课前先对着麦克风说几句，避免上课才开始下。
 - 不要拷贝别人的 `.env` / `.venv` / `data/`
@@ -68,7 +68,11 @@ flowchart LR
 ## 怎么开始
 
 ```bash
+# macOS（默认 main）
 git clone https://github.com/rehtd/course-translate.git
+
+# Windows
+git clone -b feat/windows https://github.com/rehtd/course-translate.git
 ```
 
 把**下面整段**发给编码 Agent（Cursor、Claude Code、Copilot 等），让它按仓库文档安装并带着你点界面。
@@ -83,18 +87,21 @@ git clone https://github.com/rehtd/course-translate.git
 角色：编码助手。任务：按公开仓库在本机部署「同传课堂」，并按仓库手册引导使用者完成上课操作。
 
 仓库：https://github.com/rehtd/course-translate.git
-范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。
+分支：Windows 必须用 feat/windows（git clone -b feat/windows https://github.com/rehtd/course-translate.git）。macOS 用 main 即可。
+范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。超出此范围的架构改动、安装包分发、为 Windows 重写识别/翻译，均不做。feat/windows 只换系统壳。
 
 权威文档：
 1. docs/USAGE.md — 环境、依赖、密钥、启动、麦克风授权
-2. 窗口可打开之后：docs/AGENT_GUIDE.md — 界面引导（先读操作总表）
+2. Windows 另见 docs/WINDOWS.md（仅 feat/windows 分支有）
+3. 窗口可打开之后：docs/AGENT_GUIDE.md — 界面引导（先读操作总表）
 
 策略：
 - Git：禁止 git add .；禁止 git push。不要提交 .env、data/、录音。
 - 密钥：禁止在对话中复述。没让写就不要动 .env。
+- 运行时：本机新建 .venv，不要拷别人的。Windows 用 启动同传课堂.vbs 或 .bat；macOS 用 启动同传课堂.command。不要做成安装包。
 
 执行顺序：
-1. 按 docs/USAGE.md 安装并启动，直到主窗口可打开。没让写 Key 就等使用者自己填。
+1. Windows 确认分支是 feat/windows。按 docs/USAGE.md 安装并启动，直到主窗口可打开。没让写 Key 就等使用者自己填。
 2. 按 docs/AGENT_GUIDE.md 引导界面操作（先读操作总表）。
 
 引导约定：
@@ -102,7 +109,7 @@ git clone https://github.com/rehtd/course-translate.git
 - 一次只给出一步，待使用者确认后再继续。
 - 系统弹出麦克风授权时，提示使用者点「允许」。
 - 课间引导暂停，不要结束。录制中不要引导切换课程、课节或翻译引擎。
-- 使用者若要更方便启动：可在本机生成启动器（仓库已有「启动同传课堂.command」；也可按本机习惯做 Dock / 应用程序入口）。启动器留在本机，不要提交进 Git，不要做成安装包。
+- macOS：需要的话可在本机做 Dock 入口；启动器不要提交进 Git。Windows：用仓库里已有的 vbs/bat，不要另做安装包。
 ```
 
 不要提交 `.env`、`data/`、录音；不要 `git add .`。课节和录音只在你电脑上的 `data/`（Git 忽略），换电脑不会自动带上。
