@@ -52,7 +52,6 @@
 - 上课时改某一句译文
 - 自动识别中英切换（固定英→中）
 - 用现成 wav 当麦克风再跑一遍识别
-- Windows 当稳定上课机
 - 把别人的 Key 或课堂录音放进 Git
 
 ---
@@ -77,7 +76,7 @@
 | 补录漏了的 | D16 |
 | 磁盘爆了 | D17 |
 | 整理进 Obsidian | E22（先 A1 选 vault） |
-| Windows 上课 | 说明还不行；可测回看，实时请对着麦说几句 |
+| Windows 上课 | 确认在 `feat/windows`；双击 `启动同传课堂.vbs`；系统壳见 docs/WINDOWS.md |
 
 ---
 
@@ -97,7 +96,7 @@
 
 录制中翻译引擎是锁住的，下课再改，下一场才生效。
 
-切到 PPT 后字幕不见了：确认已按 USAGE 装完依赖（含 `pyobjc-framework-Cocoa`）；菜单「字幕」可再显示。
+切到 PPT 后字幕不见了：macOS 确认已装 `pyobjc-framework-Cocoa`；Windows 见 docs/WINDOWS.md。菜单「字幕」可再显示。
 
 ### B2. 课程
 

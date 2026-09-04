@@ -2,7 +2,7 @@
 
 同传课堂：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可写入 Obsidian。
 
-仓库：`git clone https://github.com/rehtd/course-translate.git`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
+仓库：Windows 用 `git clone -b feat/windows https://github.com/rehtd/course-translate.git`；macOS 用默认 `main`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
 
 ---
 
@@ -10,12 +10,12 @@
 
 当前目录已有 `main.py` 和 `docs/USAGE.md`：不要再 clone，不要建 `*-fresh`，不要把别的项目合并进来。
 
-从**另一个文件夹**的聊天里发来提示词：只 clone 一次到独立目录（例如 `~/Projects/course-translate`），只在那份里装，不要改用户正在打开的其它项目。
+从**另一个文件夹**的聊天里发来提示词：只 clone 一次到独立目录（例如 `~/Projects/course-translate`），只在那份里装，不要改用户正在打开的其它项目。Windows 必须是 `feat/windows`。
 
 ## 2. 环境
 
-- macOS 13+。Windows 还不能当稳定上课机，不要用 Mac 启动器，不要为此改识别/翻译。
-- `python3 --version` 为 **3.11 或更高**。系统自带 3.9 不够；不够就让使用者先装 3.11+。
+- **macOS 13+**，或本分支 **Windows 10/11**。不要为 Windows 重写识别/翻译；系统壳见 [WINDOWS.md](WINDOWS.md)。
+- `python3 --version` / `py -3.12 --version` 为 **3.11 或更高**（Windows 推荐 3.11 / 3.12 64 位）。系统自带 3.9 不够；不够就让使用者先装。
 
 ## 3. 虚拟环境
 
@@ -24,6 +24,15 @@
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install -U pip
+pip install -r requirements.txt
+```
+
+Windows（PowerShell，仓库根目录）：
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -U pip
 pip install -r requirements.txt
 ```
@@ -48,6 +57,8 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+Windows：`copy .env.example .env`
+
 - 使用者**没给 Key、也没让你写**：停下来让他自己填。不要编造、不要用别人的 Key。
 - 他把 Key 发给你，或明确说写入 `.env` / 从本机另一份自己的 `.env` 填过来：只改对应行，不要整文件覆盖，不要把 Key 贴回聊天，不要 commit `.env`。
 - 已有 `.env` 且没要求改：不要覆盖、不要主动打开。
@@ -61,7 +72,9 @@ source .venv/bin/activate
 python main.py
 ```
 
-或 Finder 双击仓库根目录的 `启动同传课堂.command`（第一次可能要右键 → 打开）。
+macOS：Finder 双击 `启动同传课堂.command`（第一次可能要右键 → 打开）。
+
+Windows：双击 `启动同传课堂.vbs`（无黑框）或 `启动同传课堂.bat`。不要用 `.command` / `同传课堂.app`。
 
 若弹「缺少翻译配置」，回到第 4 步。
 
