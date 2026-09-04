@@ -6,18 +6,12 @@
 
 ---
 
-## 1. 工作区
+## 1. 环境
 
-当前目录已有 `main.py` 和 `docs/USAGE.md`：不要再 clone，不要建 `*-fresh`，不要把别的项目合并进来。
-
-从**另一个文件夹**的聊天里发来提示词：只 clone 一次到独立目录（例如 `~/Projects/course-translate`），只在那份里装，不要改用户正在打开的其它项目。
-
-## 2. 环境
-
-- macOS 13+。Windows 还不能当稳定上课机，不要用 Mac 启动器，不要为此改识别/翻译。
+- macOS 13+。Windows 还不能当稳定上课机。
 - `python3 --version` 为 **3.11 或更高**。系统自带 3.9 不够；不够就让使用者先装 3.11+。
 
-## 3. 虚拟环境
+## 2. 虚拟环境
 
 在仓库根目录：
 
@@ -28,9 +22,9 @@ python -m pip install -U pip
 pip install -r requirements.txt
 ```
 
-不要把 `.venv/` 提交进 Git。不要写死某台机器的 Python 路径，不要用别人拷来的虚拟环境。
+不要把 `.venv/` 提交进 Git。
 
-## 4. Key
+## 3. Key
 
 启动要有 **至少一种** 真实翻译配置：腾讯云、百度、阿里机器翻译、阿里百炼、DeepSeek，或 `.env` 里 `TRANSLATE_PROVIDER=ollama`。`.env.example` 里的 `your-` / `sk-your-` 不算。
 
@@ -54,7 +48,7 @@ cp .env.example .env
 
 只打算用 Ollama、不填云 Key 时，设 `TRANSLATE_PROVIDER=ollama`。
 
-## 5. 启动
+## 4. 启动
 
 ```bash
 source .venv/bin/activate
@@ -63,17 +57,17 @@ python main.py
 
 或 Finder 双击仓库根目录的 `启动同传课堂.command`（第一次可能要右键 → 打开）。
 
-若弹「缺少翻译配置」，回到第 4 步。
+若弹「缺少翻译配置」，回到第 3 步。
 
 第一次识别会下载 Whisper 模型（缓存在用户目录）。连网，最好下课前先跑一次。
 
-## 6. 麦克风
+## 5. 麦克风
 
 应用自己向系统申请。启动后（或第一次点「新建一节课」）弹出系统对话框，点「允许」。**不要先去系统设置里翻。**
 
 曾经点过「不允许」：用应用里的「打开麦克风设置」，打开开关后**完全退出应用再打开**（不要只关窗口）。
 
-## 7. 翻译引擎怎么选
+## 6. 翻译引擎怎么选
 
 设置里的「翻译引擎」只管**课上中文译文**。英文识别是本地 Whisper。笔记整理始终走 DeepSeek。
 
@@ -92,7 +86,7 @@ python main.py
 
 Ollama 默认 `http://127.0.0.1:11434/v1`。
 
-## 8. 本机数据
+## 7. 本机数据
 
 全部在仓库下的 `data/`（Git 忽略）：转写库、录音、课件、本机设置。换电脑不会自动带上。不要把录音推进 Git。
 
@@ -100,7 +94,6 @@ Ollama 默认 `http://127.0.0.1:11434/v1`。
 
 - `git add .`；提交 `.env` / `data/` / 录音；**`git push`**
 - 把 Key 写进聊天或会进 Git 的文件
-- 做成安装包；为 Windows 重写识别/翻译
 
 ## 不用 Agent 时
 
