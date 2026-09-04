@@ -4,7 +4,7 @@
 
 仓库是公开的：`git clone https://github.com/rehtd/course-translate.git`。任何人都能拉，**不要 `git push`**（只有仓库主人能推）。
 
-同学：把 [README](../README.md) 或 [AGENT_PROMPT.md](AGENT_PROMPT.md) 里的提示词**整段**发给编码 Agent，不要只说「帮我装一下」。人准备 Python 3.11+、至少一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可）、麦克风权限。不要做成安装包给人下载。不要拷贝别人的 `.env` / `.venv` / `data/`。
+同学：把 [README](../README.md) 或 [AGENT_PROMPT.md](AGENT_PROMPT.md) 里的提示词**整段**发给编码 Agent，不要只说「帮我装一下」。人准备 Python 3.11+、至少一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可）、麦克风权限。不要做成安装包给人下载。不要拷贝**别人的** `.env` / `.venv` / `data/`。把 Key 发给 Agent 或让它写入本地 `.env` 时，Agent 应该帮写。
 
 ---
 
@@ -23,7 +23,7 @@
 
 这份流程不绑某一家产品。只要能读仓库、跑终端的编码 Agent 都可以。遵守 [AGENTS.md](../AGENTS.md)。装好之后，带着用户点界面请改读 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
 
-按顺序做。任何一步需要 Key 或系统权限，停下来让使用者自己完成，不要代填、不要朗读 `.env`。
+按顺序做。麦克风权限仍由使用者自己点系统设置。Key：使用者没给、也没让你写时停下来；他发来 Key 或明确要求写入本地 `.env` 时写入对应行，不要朗读、不要 commit。
 
 ### 1. 确认环境
 
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 不要把 `.venv/` 提交进 Git。
 
-### 3. 配置 Key（使用者自己填）
+### 3. 配置 Key
 
 若 **不存在** `.env`：
 
@@ -52,9 +52,11 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-然后告诉使用者：在 `.env` 里**至少填一种**翻译 Key（腾讯云 / 百度 / 阿里 / 百炼 / DeepSeek 均可）。课后笔记才需要 DeepSeek。腾讯云入口见 `.env.example` 注释；其它机器翻译可参考 [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385)。**Agent 到此停止，等使用者说已经填好。不要代填，不要 `git push`。**
+至少填一种翻译 Key（腾讯云 / 百度 / 阿里 / 百炼 / DeepSeek 均可）。课后笔记才需要 DeepSeek。申请入口见 `.env.example` 注释；机器翻译可参考 [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385)。
 
-若 **已经存在** `.env`：不要覆盖、不要 `cat .env`、不要把内容写进聊天或 commit。
+- 使用者**没给 Key、也没让你写**：停下来让他自己填。占位符不算。不要编造、不要用别人的 Key。不要 `git push`。
+- 使用者把 Key 发给你，或明确说「写入 `.env`」「从我本机另一份 `.env` 填过来」：**写入本地 `.env` 对应行**。只改他说的项，不要整文件覆盖已有值。不要把 Key 贴回聊天，不要 commit `.env`。
+- 已有 `.env` 且使用者没要求改：不要覆盖、不要主动 `cat .env`。
 
 只打算用本机 Ollama、不填任何云 Key 时，在 `.env` 设 `TRANSLATE_PROVIDER=ollama`。
 
@@ -100,7 +102,7 @@ python main.py
 ### 8. Agent 禁止做的事
 
 - `git add .`、提交 `.env` / `data/` / 录音，以及 **`git push` 到这个仓库**。
-- 把使用者 Key 写进聊天或文件。不要覆盖已有 `.env`。
+- 把 Key 写进聊天或会进 Git 的文件。用户明确要求时可以改本地 `.env`，不要复述、不要 commit。
 - 不要把应用打成安装包。不要重写识别/翻译来「修 Windows」。
 
 ---

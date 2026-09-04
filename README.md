@@ -41,9 +41,9 @@ git clone https://github.com/rehtd/course-translate.git
 
 硬性约束：
 - 不要 git add .。不要 git push 到 origin（只有仓库主人能推；我是同学/旁人）。
-- 不要打开、复述、覆盖已有 .env；不要把 API Key 写进仓库、聊天或别的文件。不要向我要别人的 Key。
+- 不要把 API Key 写进 Git，不要在聊天里复述 Key，不要向我要别人的 Key。不要主动打开或整份覆盖已有 .env。
 - 上课不需要 DeepSeek。腾讯云 / 百度 / 阿里机器翻译 / 阿里百炼 / DeepSeek 填一种就能上课。课后「计入笔记」和提取术语才需要 DeepSeek。
-- 本地没有 .env 则执行：cp .env.example .env ，然后立刻停下来，让我自己填至少一种翻译 Key。.env.example 里的 your- / sk-your- 占位符不算。申请入口见该文件注释；机器翻译也可看 https://blog.csdn.net/weixin_44253490/article/details/126365385 。等我说已经填好再继续。不要代填。
+- 本地没有 .env 则执行：cp .env.example .env。.env.example 里的 your- / sk-your- 占位符不算。申请入口见该文件注释；机器翻译也可看 https://blog.csdn.net/weixin_44253490/article/details/126365385 。我没把 Key 给你、也没让你写时：停下来让我自己填。我把 Key 发给你，或明确说写入 .env / 从我本机另一份自己的 .env 填过来时：写入本地 .env 对应行，只改我说的项，不要复述、不要 commit。
 - 不要提交、不要分发：.env、data/、录音、*.wav、*.m4a、数据库、本机 settings.json。
 - 不要做成 dmg/exe/安装包，不要改成「下载即用」的软件。
 - macOS 13+ 可以上课。Windows 还不能当稳定上课机，不要为此重写识别/翻译。
@@ -52,7 +52,7 @@ git clone https://github.com/rehtd/course-translate.git
 安装（USAGE.md 第 1–5 步）：
 1. 确认 python3 --version 是 3.11 或更高。系统 3.9 不够；不够就让我先装 3.11+ 再继续。
 2. 在仓库根目录：python3 -m venv .venv && source .venv/bin/activate && python -m pip install -U pip && pip install -r requirements.txt
-3. 按上面规则处理 .env，停下来等我填 Key。
+3. 按上面规则处理 .env。我没给 Key 就等我填；我让你写就写入本地 .env。
 4. 告诉我去「系统设置 → 隐私与安全性 → 麦克风」，允许终端、编辑器或 python（看实际是谁在开应用）。
 5. source .venv/bin/activate && python main.py ；或装好后双击仓库根目录的「启动同传课堂.command」（Finder 第一次可能要右键 → 打开）。
 6. 若弹「缺少翻译配置」，回到第 3 步（确认填的是真实 Key，不是占位符）。第一次识别会下载 Whisper 模型，让我连网、最好下课前先跑一次。
@@ -61,7 +61,7 @@ git clone https://github.com/rehtd/course-translate.git
 
 本应用做不到（不要教我去找）：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、Windows 稳定上课。
 
-现在从确认环境 / 克隆 / 建虚拟环境开始。Key 和麦克风权限由我自己做。
+现在从确认环境 / 克隆 / 建虚拟环境开始。麦克风权限由我自己做。Key：我没让你写时由我自己填。
 ```
 
 ---

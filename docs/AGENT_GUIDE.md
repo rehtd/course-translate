@@ -6,8 +6,8 @@
 
 原则：
 
-1. 你跑终端、改仓库、解释按钮；**Key、麦克风权限、Obsidian 路径、点界面，由用户自己做。**
-2. 不要打开、复述、覆盖已有 `.env`。不要 `git add .`。不要提交 `data/` 和录音。**不要 `git push` 到这个远程仓库。**
+1. 你跑终端、改仓库、解释按钮；麦克风权限、Obsidian 路径、点界面由用户自己做。Key：用户没给就让他自己填；他明确让写入本地 `.env` 时你帮写，不要复述、不要 commit。
+2. 不要主动打开、复述、整份覆盖已有 `.env`。不要 `git add .`。不要提交 `data/` 和录音。**不要 `git push` 到这个远程仓库。**
 3. 一次只引导一步，等用户说「好了」再下一步。上课中途不要让用户改翻译引擎或切课。
 
 ---
@@ -20,7 +20,7 @@
 
 1. 克隆仓库：`git clone https://github.com/rehtd/course-translate.git`
 2. Python 3.11+、建 `.venv`、装 `requirements.txt`
-3. 用户自己在 `.env` 至少填一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可；笔记才需要 DeepSeek）。机器翻译教程：[CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
+3. `.env` 至少一种翻译 Key（腾讯/百度/阿里/百炼/DeepSeek 均可；笔记才需要 DeepSeek）。用户没给 Key 就让他自己填；他让你写本地 `.env` 就写入。机器翻译教程：[CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
 4. 允许麦克风
 5. 启动应用（`python main.py` 或双击 `启动同传课堂.command`）
 6. 设置：Obsidian 库路径；课堂翻译选已填 Key 的引擎（腾讯云可用）；识别模式用默认即可
@@ -74,7 +74,7 @@
 |--------|----|
 | 帮我装 / 打不开 | A1–A5，见 USAGE.md。若用户没给仓库地址，先让他复制 README 里的提示词 |
 | 帮我推到 GitHub / push | 拒绝。不要 `git push` |
-| 没有翻译 Key / 弹缺少翻译配置 | A3，停下来等用户自己填至少一种引擎 |
+| 没有翻译 Key / 弹缺少翻译配置 | A3。没给 Key 就等他自己填；他发来或让写入 `.env` 则帮写 |
 | 没声音 / 识别不到 | A4，然后确认选对了课程再新建一节 |
 | 设置笔记库 / 翻译引擎 | A6 |
 | 加一门课 | B7 |
@@ -96,14 +96,14 @@
 
 ### A. 安装启动
 
-按 [USAGE.md](USAGE.md) 第 1–5 步。用户填 Key 时你停住。启动成功：出现「同传课堂」窗口，状态栏类似「就绪 · 选择课程后点击新建一节课」。
+按 [USAGE.md](USAGE.md) 第 1–5 步。用户没给 Key 时你停住；他让写入 `.env` 时按 USAGE 第 3 步帮写。启动成功：出现「同传课堂」窗口，状态栏类似「就绪 · 选择课程后点击新建一节课」。
 
 第一次识别会下载 Whisper，可能要几分钟。失败看窗口状态栏或 `data/app.log`（不要把日志里的路径当 Key 发出去）。
 
 常见卡住：
 
 - `python3` 是 3.9：停下来让用户先装 3.11+（python.org 或 Homebrew），不要用系统 Python 建 venv。
-- 弹「缺少翻译配置」：回到 USAGE 第 3 步，等用户自己填至少一种真实 Key（占位符不算）。不要代填、不要 `cat .env`。
+- 弹「缺少翻译配置」：回到 USAGE 第 3 步。没给 Key 就等他自己填（占位符不算）；他让写入 `.env` 则帮写。不要主动 `cat .env`，不要把 Key 贴回聊天。
 - Finder 双击 `.command` 打不开：让用户右键 → 打开；或改用终端 `source .venv/bin/activate && python main.py`。
 - 没声音 / 开录失败：麦克风权限；勾完后**完全退出再打开**。
 - 切到 PPT 后字幕不见了：确认 `pip install -r requirements.txt` 已装完（含 `pyobjc-framework-Cocoa`）；菜单「字幕」可再显示。
