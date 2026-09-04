@@ -1,6 +1,7 @@
 """同传课堂主窗口：课程/会话管理、录制控制、转写查看、搜索、计入笔记。"""
 import pathlib
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -281,6 +282,7 @@ class MainWindow(QMainWindow):
         self._seed_courses()
         if warmup:
             self._warmup_model()
+            QTimer.singleShot(800, self._preflight_mic)
         else:
             self._model_ready = True
         self._pending_note = None
@@ -839,6 +841,76 @@ class MainWindow(QMainWindow):
         except Exception:  # noqa: BLE001
             pass
 
+    def _preflight_mic(self):
+        """启动后若尚未问过权限，弹出系统「允许麦克风」，不必去设置里找。"""
+        if sys.platform != "darwin":
+            return
+        from app.mic_permission import request, status
+        if status() != "not_determined":
+            return
+        self.status.showMessage("请在系统弹窗中点「允许」使用麦克风…", 0)
+
+        def done(ok):
+            if ok:
+                self.status.showMessage("已允许麦克风", 4000)
+            else:
+                self.status.showMessage("未允许麦克风。上课前点「新建一节课」会再请你授权。", 8000)
+
+        request(done, parent=self)
+
+    def _require_mic(self, then):
+        """开录前确认权限：未问过则弹系统对话框；已拒绝则打开设置页。"""
+        if sys.platform != "darwin":
+            then()
+            return
+        from app.mic_permission import request, status
+        st = status()
+        if st == "authorized":
+            then()
+            return
+        if st == "not_determined":
+            self.status.showMessage("请在系统弹窗中点「允许」使用麦克风…", 0)
+
+            def done(ok):
+                if ok:
+                    then()
+                else:
+                    self._mic_denied_dialog()
+
+            request(done, parent=self)
+            return
+        if st in ("denied", "restricted"):
+            self._mic_denied_dialog()
+            return
+        then()
+
+    def _mic_denied_dialog(self):
+        from app.mic_permission import open_settings
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("需要麦克风")
+        box.setText("系统还没允许这个程序用麦克风。")
+        box.setInformativeText(
+            "点「打开麦克风设置」，在列表里打开开关。\n"
+            "然后完全退出本应用再打开（不要只关窗口）。")
+        open_btn = box.addButton("打开麦克风设置", QMessageBox.AcceptRole)
+        box.addButton("取消", QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() == open_btn:
+            open_settings()
+            self.status.showMessage("打开开关后，请完全退出再打开本应用", 8000)
+
+    def _on_mic_open_failed(self, title: str, exc: BaseException):
+        from app.mic_permission import looks_like_denied, status
+        if sys.platform == "darwin" and (
+                status() in ("denied", "restricted") or looks_like_denied(exc)):
+            self._mic_denied_dialog()
+            return
+        QMessageBox.critical(
+            self, title,
+            f"打开麦克风失败：{exc}\n\n"
+            "请检查没有其他应用独占麦克风（如视频会议），然后重试。")
+
     # ---------- 录制控制 ----------
     def on_record(self):
         cid = self._cur_course_id
@@ -859,6 +931,9 @@ class MainWindow(QMainWindow):
                     if cid is not None else self.store.list_orphan_sessions())
         n = sum(1 for s in sessions if s[3] != "aborted") + 1
         title = f"第 {n} 节"
+        self._require_mic(lambda c=cid, t=title: self._begin_new_session(c, t))
+
+    def _begin_new_session(self, cid, title):
         self._ensure_recorder()
         self._clear_transcript()
         self.current_session = None
@@ -872,12 +947,7 @@ class MainWindow(QMainWindow):
         try:
             self.recorder.start(course_id=cid, title=title)
         except Exception as e:  # noqa: BLE001
-            QMessageBox.critical(
-                self, "无法开始录音",
-                f"打开麦克风失败：{e}\n\n请检查：\n"
-                "1. 系统设置 → 隐私与安全性 → 麦克风 → 允许「同传课堂」\n"
-                "2. 没有其他应用独占麦克风（如视频会议）\n"
-                "3. 重启应用后重试")
+            self._on_mic_open_failed("无法开始录音", e)
             return
         self._reload_session_list()   # 中栏立即出现「● 录制中 · 第 N 节」
         self._apply_workspace("record")
@@ -913,6 +983,9 @@ class MainWindow(QMainWindow):
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if ret != QMessageBox.Yes:
             return
+        self._require_mic(lambda s=sid, t=title: self._begin_continue(s, t))
+
+    def _begin_continue(self, sid, title):
         self._ensure_recorder()
         self._clear_transcript()
         self.current_session = None
@@ -926,12 +999,7 @@ class MainWindow(QMainWindow):
         try:
             self.recorder.continue_session(sid)
         except Exception as e:  # noqa: BLE001
-            QMessageBox.critical(
-                self, "无法继续录音",
-                f"打开麦克风失败：{e}\n\n请检查：\n"
-                "1. 系统设置 → 隐私与安全性 → 麦克风 → 允许「同传课堂」\n"
-                "2. 没有其他应用独占麦克风（如视频会议）\n"
-                "3. 重启应用后重试")
+            self._on_mic_open_failed("无法继续录音", e)
             return
         self._reload_session_list(select_sid=sid)   # 该课节回到「● 录制中」状态
         self._fill_record_boxes(sid)

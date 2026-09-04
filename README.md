@@ -53,7 +53,7 @@ git clone https://github.com/rehtd/course-translate.git
 1. 确认 python3 --version 是 3.11 或更高。系统 3.9 不够；不够就让我先装 3.11+ 再继续。
 2. 在仓库根目录：python3 -m venv .venv && source .venv/bin/activate && python -m pip install -U pip && pip install -r requirements.txt
 3. 按上面规则处理 .env。我没给 Key 就等我填；我让你写就写入本地 .env。
-4. 告诉我去「系统设置 → 隐私与安全性 → 麦克风」，允许终端、编辑器或 python（看实际是谁在开应用）。
+4. 启动后若弹出系统麦克风授权，让我点「允许」。不要先让我去系统设置里找开关。只有我曾经点过「不允许」时，才用应用里的「打开麦克风设置」。
 5. source .venv/bin/activate && python main.py ；或装好后双击仓库根目录的「启动同传课堂.command」（Finder 第一次可能要右键 → 打开）。
 6. 若弹「缺少翻译配置」，回到第 3 步（确认填的是真实 Key，不是占位符）。第一次识别会下载 Whisper 模型，让我连网、最好下课前先跑一次。
 
@@ -61,7 +61,7 @@ git clone https://github.com/rehtd/course-translate.git
 
 本应用做不到（不要教我去找）：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、Windows 稳定上课。
 
-现在从确认环境 / 克隆 / 建虚拟环境开始。麦克风权限由我自己做。Key：我没让你写时由我自己填。
+现在从确认环境 / 克隆 / 建虚拟环境开始。系统麦克风弹窗由我点允许。Key：我没让你写时由我自己填。
 ```
 
 ---
@@ -72,7 +72,7 @@ git clone https://github.com/rehtd/course-translate.git
 |------|------|
 | 至少一种翻译 Key | 腾讯云 / 百度 / 阿里 / 百炼 / [DeepSeek 控制台](https://platform.deepseek.com/usage) → 写入本地 `.env` |
 | 机器翻译申请步骤 | [CSDN · 阿里等翻译 API](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
-| 麦克风 | 系统设置 → 隐私与安全性 → 麦克风 |
+| 麦克风 | 启动后点系统弹窗「允许」；曾拒绝过再用应用里的「打开麦克风设置」 |
 | Obsidian 笔记库 | 应用内「⚙ 设置」（不选则「计入笔记」写不进去） |
 
 ### 翻译引擎（只影响课上中文）

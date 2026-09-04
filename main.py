@@ -68,6 +68,8 @@ def run_app():
     store = Store()
     store.recover_stale_sessions()   # 清理上次异常退出的残留 recording，避免 UI 一直显示录音中
     app = QApplication([])
+    app.setApplicationName("同传课堂")
+    app.setApplicationDisplayName("同传课堂")
     win = MainWindow(store)
     win.show()
     return app.exec()
