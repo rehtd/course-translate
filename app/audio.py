@@ -10,14 +10,28 @@ import sounddevice as sd
 import soundfile as sf
 
 
+def list_input_devices() -> list[tuple[int, str, int]]:
+    """本机输入设备：(index, name, channels)。查不到设备时返回空列表。"""
+    try:
+        out: list[tuple[int, str, int]] = []
+        for i, d in enumerate(sd.query_devices()):
+            ch = int(d.get("max_input_channels") or 0)
+            if ch > 0:
+                out.append((i, str(d.get("name") or f"device-{i}"), ch))
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
 class AudioSource:
     def __init__(self, sample_rate: int = 16000, block_sec: float = 0.1,
                  wav_file: str | None = None, fast: bool = False,
-                 wav_out: str | None = None):
+                 wav_out: str | None = None, device=None):
         self.sr = sample_rate
         self.block = int(sample_rate * block_sec)
         self.wav_file = wav_file
         self.fast = fast
+        self.device = device if device not in ("", None) else None
         self.q: "queue.Queue[np.ndarray | None]" = queue.Queue()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -35,8 +49,11 @@ class AudioSource:
             self._thread.start()
             return
         # 麦克风：同步打开流——权限/设备错误会在此处抛出，便于上层给出提示
-        self._stream = sd.InputStream(samplerate=self.sr, channels=1, dtype="float32",
-                                      blocksize=self.block, callback=self._cb)
+        kwargs = dict(samplerate=self.sr, channels=1, dtype="float32",
+                      blocksize=self.block, callback=self._cb)
+        if self.device is not None:
+            kwargs["device"] = self.device
+        self._stream = sd.InputStream(**kwargs)
         self._stream.start()
         self._thread = threading.Thread(target=self._run_mic, daemon=True)
         self._thread.start()

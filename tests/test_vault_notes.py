@@ -75,7 +75,7 @@ def test_render_lecture_has_index():
 
 
 def test_write_and_upsert(tmp=None):
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         root = Path(td)
         meta = _meta(root)
         r1 = write_vault(meta, _draft())
@@ -110,7 +110,7 @@ def test_write_and_upsert(tmp=None):
 
 
 def test_inspect_new_vs_merge():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         root = Path(td)
         meta = _meta(root)
         rows = inspect_concepts(meta, _draft())
@@ -122,7 +122,7 @@ def test_inspect_new_vs_merge():
 
 
 def test_inspect_does_not_create_dirs():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         root = Path(td)
         meta = _meta(root)
         inspect_concepts(meta, _draft())
@@ -132,7 +132,7 @@ def test_inspect_does_not_create_dirs():
 
 
 def test_reuse_lecture_path():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         root = Path(td)
         meta = _meta(root)
         r1 = write_vault(meta, _draft())
@@ -147,7 +147,7 @@ def test_reuse_lecture_path():
 
 def test_session_remembers_note_path():
     from app.storage import Store
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         store = Store(Path(td) / "t.db")
         sid = store.create_session("t")
         assert store.get_note_path(sid) is None
@@ -157,7 +157,7 @@ def test_session_remembers_note_path():
 
 
 def test_find_by_frontmatter_title():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         cdir = Path(td)
         p = cdir / "Attention.md"
         p.write_text("---\ntitle: 注意力机制\ntype: concept\n---\n# 注意力\n", encoding="utf-8")

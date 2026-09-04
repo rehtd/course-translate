@@ -12,7 +12,10 @@ from app.mic_permission import (  # noqa: E402
 def test_settings_urls_point_at_microphone_pane():
     urls = settings_urls()
     assert urls
-    assert all("Microphone" in u for u in urls)
+    blob = " ".join(urls)
+    assert "Microphone" in blob or "microphone" in blob
+    if sys.platform == "win32":
+        assert any(u.startswith("ms-settings:") for u in urls)
     print("PASS test_settings_urls_point_at_microphone_pane")
 
 

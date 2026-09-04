@@ -11,6 +11,8 @@ DEFAULTS = {
     "translate_provider": "deepseek",
     # 识别模式：realtime=实时（5s 窗+beam1/5、无 VAD，延迟低）；precise=精准（10s 窗+beam3、VAD 滤环境音，更准更稳）
     "asr_mode": "realtime",
+    # 麦克风：空=系统默认。Windows 常被设成「立体声混音」，可在设置里改成课堂麦
+    "input_device": "",
 }
 
 

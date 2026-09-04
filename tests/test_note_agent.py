@@ -62,7 +62,7 @@ def test_empty_draft():
 
 
 def test_build_input_skips_noise_and_pause():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "n.db")
         t0 = datetime.now().replace(microsecond=0)
         sid = store.create_session(title="t")

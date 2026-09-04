@@ -6,7 +6,9 @@
   快捷键（点一下控制条获得焦点后）：空格=暂停/继续，M=打点，Esc=结束。
 """
 from difflib import SequenceMatcher
+import ctypes
 import re
+import sys
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QGuiApplication
@@ -54,8 +56,35 @@ def _shadow(widget, blur: int, offset: int = 2):
     widget.setGraphicsEffect(e)
 
 
+def _ui_font(families, point_size: int, weight=QFont.Normal) -> QFont:
+    """跨平台字体候选链：用本机已安装的第一个，避免空家族名导致度量乱掉。"""
+    from PySide6.QtGui import QFontDatabase
+    installed = set(QFontDatabase.families())
+    chosen = next((name for name in families if name in installed), families[0])
+    return QFont(chosen, point_size, weight)
+
+
+def _subtitle_font() -> QFont:
+    """悬浮英文：Windows 优先 Segoe UI，避免本机 Helvetica Neue 字宽过大把跟读截断。"""
+    if sys.platform == "win32":
+        families = ["Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "Helvetica Neue"]
+        size = 20  # Segoe 28 过宽，1200px 只能塞三十多个字母
+    else:
+        families = ["Helvetica Neue", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei"]
+        size = 28
+    return _ui_font(families, size, QFont.Bold)
+
+
+def _chip_font() -> QFont:
+    if sys.platform == "win32":
+        families = ["Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", "PingFang SC"]
+    else:
+        families = ["PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI"]
+    return _ui_font(families, 9)
+
+
 def _apply_native_level(widget: QWidget):
-    """用 pyobjc 提升窗口到浮动层级。
+    """用 pyobjc 提升窗口到浮动层级（仅 macOS）。
 
     切到后台或正在激活时不要碰 NSWindow：此时调 winId()/setLevel_
     会和 Cocoa 窗口激活抢主线程，表现为切回前台卡死。
@@ -65,7 +94,6 @@ def _apply_native_level(widget: QWidget):
         app = QApplication.instance()
         if app is not None and app.applicationState() != Qt.ApplicationActive:
             return
-        import ctypes
         from AppKit import NSFloatingWindowLevel
         import objc
         if not widget.isVisible():
@@ -86,25 +114,67 @@ def _apply_native_level(widget: QWidget):
         print(f"[overlay] 浮动层级设置失败: {e}", flush=True)
 
 
-def make_floating(widget: QWidget):
-    """macOS：把字幕/控制条窗口提升到浮动层级，切换应用后仍保持可见。
+def _apply_win_topmost_and_clickthrough(widget: QWidget):
+    """Windows：HWND_TOPMOST；仅字幕窗加 WS_EX_TRANSPARENT（控制条可点）。"""
+    try:
+        if not widget.isVisible():
+            return
+        hwnd = int(widget.winId())
+        if not hwnd:
+            return
+        user32 = ctypes.windll.user32
+        HWND_TOPMOST = -1
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOACTIVATE = 0x0010
+        user32.SetWindowPos(
+            hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
 
-    用 pyobjc（安全桥接）设置 NSWindow level；每 3 秒复查一次，
-    防止 Qt/系统在应用切换时重置层级。
+        # 控制条没有 WA_TransparentForMouseEvents，不能加点穿，否则暂停/结束点不到
+        if not widget.testAttribute(Qt.WA_TransparentForMouseEvents):
+            return
+
+        GWL_EXSTYLE = -20
+        WS_EX_LAYERED = 0x00080000
+        WS_EX_TRANSPARENT = 0x00000020
+        if ctypes.sizeof(ctypes.c_void_p) == 8:
+            get_long = user32.GetWindowLongPtrW
+            set_long = user32.SetWindowLongPtrW
+        else:
+            get_long = user32.GetWindowLongW
+            set_long = user32.SetWindowLongW
+        style = get_long(hwnd, GWL_EXSTYLE)
+        set_long(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED | WS_EX_TRANSPARENT)
+    except Exception as e:  # noqa: BLE001
+        print(f"[overlay] Windows 置顶/点穿设置失败: {e}", flush=True)
+
+
+def make_floating(widget: QWidget):
+    """把字幕/控制条提升到浮动层，切换应用（如全屏 PPT）后仍可见。
+
+    macOS：AppKit NSFloatingWindowLevel + 每 3s 复查。
+    Windows：HWND_TOPMOST；字幕 HWND 再加点击穿透。不要在 Darwin 分支外 import AppKit。
     """
-    widget.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
-    _apply_native_level(widget)
-    if getattr(widget, "_float_timer", None) is None:
-        timer = QTimer(widget)
-        timer.timeout.connect(lambda: _apply_native_level(widget))
-        timer.start(3000)
-        widget._float_timer = timer
+    if sys.platform == "darwin":
+        widget.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
+        _apply_native_level(widget)
+        if getattr(widget, "_float_timer", None) is None:
+            timer = QTimer(widget)
+            timer.timeout.connect(lambda: _apply_native_level(widget))
+            timer.start(3000)
+            widget._float_timer = timer
+        return
+    if sys.platform == "win32":
+        _apply_win_topmost_and_clickthrough(widget)
 
 
 class SubtitleBar(QWidget):
     """底部电影式字幕层：只显示，点击穿透。"""
 
-    def __init__(self, margin_bottom: int = 40, max_width: int = 1200):
+    def __init__(self, margin_bottom: int = 40, max_width: int | None = None):
+        if max_width is None:
+            max_width = 1600 if sys.platform == "win32" else 1200
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -114,7 +184,7 @@ class SubtitleBar(QWidget):
         # 英文单行。中英对照在主窗口两个积累框里看；悬浮只跟读最近一句。
         # 关闭换行，超长省略，窗口总高固定为 _H_ONE。
         self.en = QLabel("")
-        self.en.setFont(QFont("Helvetica Neue", 28, QFont.Bold))
+        self.en.setFont(_subtitle_font())
         self.en.setAlignment(Qt.AlignCenter)
         self.en.setWordWrap(False)
         self.en.setFixedHeight(38)
@@ -134,8 +204,11 @@ class SubtitleBar(QWidget):
 
     def _fit(self, widget: QLabel, text: str) -> str:
         """单行省略：超出 label 宽度的文本以 … 结尾（防溢出破坏布局）。"""
+        width = widget.width() - 8
+        if width <= 0:
+            return text or ""
         fm = QFontMetrics(widget.font())
-        return fm.elidedText(text or "", Qt.ElideRight, widget.width() - 8)
+        return fm.elidedText(text or "", Qt.ElideRight, width)
 
     def _set_en(self, text: str):
         self._raw_en = text or ""
@@ -260,7 +333,7 @@ class ControlChip(QWidget):
         self._paused = False
 
         self.status = QLabel("● REC")
-        self.status.setFont(QFont("PingFang SC", 9))
+        self.status.setFont(_chip_font())
         self.status.setStyleSheet(
             "color: #7CFC00; background: rgba(0,0,0,150); padding: 2px 6px; border-radius: 6px;")
 

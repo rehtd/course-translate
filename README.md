@@ -13,11 +13,11 @@
 
 能：上课同传、课后回看、课程术语表、计入笔记。
 
-不能：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、把 Windows 当稳定上课机。也不是「下载即用」的安装包。
+不能：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍。也不是「下载即用」的安装包。官方 `main` 仍不以 Windows 为稳定上课机；**本分支 `feat/windows` 只换系统壳**，识别/翻译与 Mac 上课版相同。
 
 ## 你需要准备
 
-- **macOS 13+**，**Python 3.11+**（系统自带 3.9 不够）
+- **macOS 13+**，或本分支上的 **Windows 10/11**；**Python 3.11+**（系统自带 3.9 不够；Windows 推荐 3.11 / 3.12）
 - `.env` 里至少一种翻译 Key（腾讯 / 百度 / 阿里 / 百炼 / DeepSeek / 或本机 Ollama）。课后笔记才需要 DeepSeek。
 - 不要拷贝别人的 `.env` / `.venv` / `data/`
 
@@ -32,6 +32,10 @@ git clone https://github.com/rehtd/course-translate.git
 把**下面整段**发给编码 Agent（Cursor、Claude Code、Copilot 等），让它按仓库文档安装并带着你点界面。
 
 不用 Agent：见 [docs/USAGE.md](docs/USAGE.md)。装好之后怎么点界面：见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。
+
+### 本分支 feat/windows
+
+功能跟 Mac 上课版对齐，只适配窗口置顶/点穿、字体、打开笔记、麦克风权限与启动器。Windows 双击 [启动同传课堂.vbs](启动同传课堂.vbs)（无黑框）或 [启动同传课堂.bat](启动同传课堂.bat)，不要用 `启动同传课堂.command` / `同传课堂.app`。详见 [docs/WINDOWS.md](docs/WINDOWS.md)。
 
 ### 发给 Agent 的提示词（整段复制）
 

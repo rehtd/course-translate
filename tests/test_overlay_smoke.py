@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
+os.environ.setdefault("QT_SCALE_FACTOR", "1")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
@@ -36,25 +38,26 @@ def text_of(bar):
 
 
 def test_typing_accumulate_no_flash():
-    """partial 打字机：只追加，已显词不消失；抖动不闪屏。"""
+    """partial 打字机：只追加，已显词不消失；抖动不闪屏。
+
+    累积状态看 _acc_en。屏幕字会 elide，Windows 字体比 Helvetica Neue 宽，
+    不能用显示文本判断 models / in finance 是否还在。
+    """
     bar = make_bar()
     bar.update_partial("Now let's talk about regression", "现在我们来谈回归")
-    en1 = text_of(bar)
-    assert "Now let's talk about regression" in en1
+    assert "Now let's talk about regression" in bar._acc_en
     # 打字机增长：只追加尾部
     bar.update_partial("Now let's talk about regression models", "现在我们来谈回归模型")
-    en2 = text_of(bar)
-    assert en2.startswith("Now let's talk about regression")
-    assert "models" in en2
+    assert bar._acc_en.startswith("Now let's talk about regression")
+    assert "models" in bar._acc_en
     # 窗口滑头 + 追加：已显词不消失
     bar.update_partial("let's talk about regression models in finance", "我们来谈金融中的回归模型")
-    en3 = text_of(bar)
-    assert en3.startswith("Now let's talk about regression")  # 开头没被切掉
-    assert "in finance" in en3
+    acc3 = bar._acc_en
+    assert acc3.startswith("Now let's talk about regression")  # 开头没被切掉
+    assert "in finance" in acc3
     # 措辞收缩（窗口纯滑头无新词）：不刷新
     bar.update_partial("let's talk about regression models", "我们来谈回归模型")
-    en4 = text_of(bar)
-    assert en4 == en3
+    assert bar._acc_en == acc3
 
 
 def test_final_replaces_and_resets():
@@ -62,8 +65,8 @@ def test_final_replaces_and_resets():
     bar = make_bar()
     bar.update_partial("we are using panel data", "我们正在使用面板数据")
     bar.update_text("we are using panel data from 2010", "我们正在使用 2010 年以来的面板数据")
-    en = text_of(bar)
-    assert en == "we are using panel data from 2010"
+    assert bar._acc_en == "we are using panel data from 2010"
+    assert "2010" in bar._raw_en
     # 下一句 partial：与定稿句低重合 → 整行替换
     bar.update_partial("Next let's look at the results", "接下来我们看结果")
     assert text_of(bar).startswith("Next let's look at the results")
@@ -132,6 +135,22 @@ def test_empty_en_keeps_status():
     bar.update_text("", "等待老师讲课…")
     assert "等待老师讲课" in text_of(bar)
     assert bar.height() == _H_ONE
+
+
+def test_make_floating_windows_skips_mac_attr():
+    """Windows 不得设 WA_MacAlwaysShowToolWindow；字幕仍是点击穿透。"""
+    from PySide6.QtCore import Qt
+    from app.overlay import make_floating
+
+    bar = make_bar()
+    bar.show()
+    app.processEvents()
+    make_floating(bar)
+    assert bar.testAttribute(Qt.WA_TransparentForMouseEvents)
+    if sys.platform == "win32":
+        assert not bar.testAttribute(Qt.WA_MacAlwaysShowToolWindow)
+        # 本机 Helvetica Neue 字宽异常，跟读应走 Segoe / 雅黑
+        assert bar.en.font().family() != "Helvetica Neue"
 
 
 if __name__ == "__main__":

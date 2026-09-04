@@ -43,7 +43,7 @@ def test_courseware_block():
 
 
 def test_save_and_extract_pdf():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         src = Path(tmp) / "in.pdf"
         src.write_bytes(_MINI_PDF)
         dest = Path(tmp) / "out.pdf"
@@ -56,7 +56,7 @@ def test_save_and_extract_pdf():
 
 
 def test_store_material_paths():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "m.db")
         cid = store.add_course("IS6335", "DV")
         sid = store.create_session("第1节", course_id=cid)

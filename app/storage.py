@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from app import config
 
@@ -415,7 +416,7 @@ class Store:
                 " WHERE session_id=? ORDER BY seq", (sid,)).fetchall()
             sess = self.conn.execute(
                 "SELECT title, started_at FROM sessions WHERE id=?", (sid,)).fetchone()
-        path = path or (config.EXPORT_DIR / f"session_{sid}.md")
+        path = Path(path or (config.EXPORT_DIR / f"session_{sid}.md"))
         path.parent.mkdir(parents=True, exist_ok=True)
 
         title = title or (sess[0] if sess else f"Session {sid}")

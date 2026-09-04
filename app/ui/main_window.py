@@ -1,4 +1,5 @@
 """同传课堂主窗口：课程/会话管理、录制控制、转写查看、搜索、计入笔记。"""
+import os
 import pathlib
 import subprocess
 import sys
@@ -8,7 +9,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QPainter, QPalette
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                                QFrame, QHBoxLayout, QInputDialog, QLabel,
@@ -23,6 +24,7 @@ from app.audio_files import (
     resolve_audio, wav_bytes_total, PROMPT_MIN_BYTES,
 )
 from app.asr import Transcriber
+from app.audio import list_input_devices
 from app.overlay import ControlChip, SubtitleBar, make_floating
 from app.recorder import Recorder
 from app.storage import Store
@@ -54,10 +56,40 @@ _ASR_MODES = {
     "precise": "精准（框内约 10s 切句 + 环境音过滤，字幕同样短窗）",
 }
 
+
+def _mic_fail_hint(err: Exception) -> str:
+    """麦克风打不开时的平台相关提示（Mac / Windows 设置路径不同）。"""
+    if sys.platform == "win32":
+        steps = (
+            "1. 设置 → 隐私和安全性 → 麦克风 → 允许桌面应用 / 允许 python.exe（或启动器）\n"
+            "2. 没有 Teams/Zoom 等应用独占麦克风；默认输入设备应是课堂麦，不是「立体声混音」\n"
+            "3. 重启应用后重试"
+        )
+    else:
+        steps = (
+            "1. 系统设置 → 隐私与安全性 → 麦克风 → 允许「同传课堂」\n"
+            "2. 没有其他应用独占麦克风（如视频会议）\n"
+            "3. 重启应用后重试"
+        )
+    return f"打开麦克风失败：{err}\n\n请检查：\n{steps}"
+
+
+def _open_obsidian_note(path) -> None:
+    """用 obsidian:// URL 打开课节页。Windows 没有 open 命令。"""
+    url = f"obsidian://open?path={quote(str(path))}"
+    if sys.platform == "win32":
+        try:
+            os.startfile(url)
+        except OSError:
+            QDesktopServices.openUrl(QUrl(url))
+        return
+    subprocess.Popen(["open", url])
+
+
 # 全局主题：浅色现代风，靛蓝主色，录制红/暂停琥珀作为强状态色
 _APP_QSS = """
 QMainWindow, QDialog { background: #F4F5F7; }
-QWidget { font-family: "PingFang SC", "Helvetica Neue"; font-size: 13px; color: #1F2329; }
+QWidget { font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif; font-size: 13px; color: #1F2329; }
 
 QComboBox, QLineEdit {
     background: #FFFFFF; color: #1F2329; border: 1px solid #D8DBE0; border-radius: 6px;
@@ -466,7 +498,8 @@ class MainWindow(QMainWindow):
             box = QPlainTextEdit()
             box.setReadOnly(True)
             box.setPlaceholderText(placeholder)
-            font = "Menlo, monospace" if mono else "'PingFang SC', 'Helvetica Neue'"
+            font = ('"Menlo", "Consolas", "Cascadia Mono", monospace' if mono
+                    else '"PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif')
             box.setStyleSheet(
                 "QPlainTextEdit { background: #FBFCFE; border: 1px solid #E3E5E9;"
                 "border-radius: 8px; padding: 10px; color: #1F2329; font-size: 15px;"
@@ -794,6 +827,8 @@ class MainWindow(QMainWindow):
         self.status.showMessage(
             f"正在加载识别模型（字幕 {config.ASR_PARTIAL_MODEL} · 框内 {config.ASR_MODEL}）…")
         self.btn_new_session.setEnabled(False)
+        self.btn_new_session.setText("加载模型中…")
+        self.btn_new_session.setToolTip("识别模型还在加载，底部状态栏显示「就绪」后再点")
 
         def load():
             try:
@@ -817,10 +852,13 @@ class MainWindow(QMainWindow):
     def _check_model(self):
         if self._model_ready:
             self._timer.stop()
+            self.btn_new_session.setText("＋ 新建一节课")
+            self.btn_new_session.setToolTip("在当前课程下开始新一节录制")
             self.btn_new_session.setEnabled(True)
             self.status.showMessage("就绪 · 选择课程后点击「＋ 新建一节课」开始录制")
         elif self._model_error:
             self._timer.stop()
+            self.btn_new_session.setText("＋ 新建一节课")
             self.btn_new_session.setEnabled(False)
             self.status.showMessage(f"模型加载失败: {self._model_error}")
 
@@ -875,11 +913,14 @@ class MainWindow(QMainWindow):
             pass
 
     def _preflight_mic(self):
-        """启动后若尚未问过权限，弹出系统「允许麦克风」，不必去设置里找。"""
-        if sys.platform != "darwin":
+        """启动后尝试申请麦克风：Mac 弹系统对话框；Windows 打开一次输入流触发系统授权。"""
+        if sys.platform not in ("darwin", "win32"):
             return
         from app.mic_permission import request, status
-        if status() != "not_determined":
+        st = status()
+        if sys.platform == "darwin" and st != "not_determined":
+            return
+        if sys.platform == "win32" and st == "authorized":
             return
         self.status.showMessage("请在系统弹窗中点「允许」使用麦克风…", 0)
 
@@ -893,7 +934,7 @@ class MainWindow(QMainWindow):
 
     def _require_mic(self, then):
         """开录前确认权限：未问过则弹系统对话框；已拒绝则打开设置页。"""
-        if sys.platform != "darwin":
+        if sys.platform not in ("darwin", "win32"):
             then()
             return
         from app.mic_permission import request, status
@@ -901,14 +942,18 @@ class MainWindow(QMainWindow):
         if st == "authorized":
             then()
             return
-        if st == "not_determined":
+        if st == "not_determined" or (sys.platform == "win32" and st == "unknown"):
             self.status.showMessage("请在系统弹窗中点「允许」使用麦克风…", 0)
 
             def done(ok):
                 if ok:
                     then()
-                else:
-                    self._mic_denied_dialog()
+                    return
+                if sys.platform == "win32":
+                    # 试开可能被系统弹窗卡住；界面已不阻塞，开录时再报具体错误
+                    then()
+                    return
+                self._mic_denied_dialog()
 
             request(done, parent=self)
             return
@@ -923,9 +968,15 @@ class MainWindow(QMainWindow):
         box.setIcon(QMessageBox.Warning)
         box.setWindowTitle("需要麦克风")
         box.setText("系统还没允许这个程序用麦克风。")
-        box.setInformativeText(
-            "点「打开麦克风设置」，在列表里打开开关。\n"
-            "然后完全退出本应用再打开（不要只关窗口）。")
+        if sys.platform == "win32":
+            box.setInformativeText(
+                "点「打开麦克风设置」，允许桌面应用 / python.exe。\n"
+                "同时确认输入设备是课堂麦，不是「立体声混音」。\n"
+                "改完后完全退出再打开本应用（不要只关窗口）。")
+        else:
+            box.setInformativeText(
+                "点「打开麦克风设置」，在列表里打开开关。\n"
+                "然后完全退出本应用再打开（不要只关窗口）。")
         open_btn = box.addButton("打开麦克风设置", QMessageBox.AcceptRole)
         box.addButton("取消", QMessageBox.RejectRole)
         box.exec()
@@ -935,14 +986,11 @@ class MainWindow(QMainWindow):
 
     def _on_mic_open_failed(self, title: str, exc: BaseException):
         from app.mic_permission import looks_like_denied, status
-        if sys.platform == "darwin" and (
-                status() in ("denied", "restricted") or looks_like_denied(exc)):
-            self._mic_denied_dialog()
-            return
-        QMessageBox.critical(
-            self, title,
-            f"打开麦克风失败：{exc}\n\n"
-            "请检查没有其他应用独占麦克风（如视频会议），然后重试。")
+        if status() in ("denied", "restricted") or looks_like_denied(exc):
+            if sys.platform in ("darwin", "win32"):
+                self._mic_denied_dialog()
+                return
+        QMessageBox.critical(self, title, _mic_fail_hint(exc))
 
     # ---------- 录制控制 ----------
     def on_record(self):
@@ -1092,6 +1140,40 @@ class MainWindow(QMainWindow):
         if self.bar:
             self.bar.hide()
             self.chip.hide()
+
+    def _teardown_runtime(self):
+        """关窗口时拆掉字幕/定时器/进行中的录音，避免 Windows 上置顶窗和线程残留。"""
+        for t in (getattr(self, "_timer", None), getattr(self, "_banner_timer", None)):
+            if t is not None:
+                t.stop()
+        rec = self.recorder
+        if rec is not None and getattr(self, "_recording_active", False):
+            try:
+                rec.stop()
+            except Exception:  # noqa: BLE001
+                pass
+        dlg = getattr(self, "_full_dlg", None)
+        if dlg is not None:
+            dlg.close()
+            self._full_dlg = None
+        for w in (self.bar, self.chip):
+            if w is None:
+                continue
+            timer = getattr(w, "_float_timer", None)
+            if timer is not None:
+                timer.stop()
+                w._float_timer = None
+            w.hide()
+            w.close()
+        self.bar = None
+        self.chip = None
+
+    def closeEvent(self, event):
+        try:
+            self._teardown_runtime()
+        except Exception:  # noqa: BLE001
+            pass
+        super().closeEvent(event)
 
     # ---------- Recorder 信号 ----------
     def _on_seg(self, seq, t0, t1, en, zh):
@@ -1602,8 +1684,7 @@ class MainWindow(QMainWindow):
             self, "已写入笔记", msg,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if ret == QMessageBox.Yes:
-            subprocess.Popen(
-                ["open", f"obsidian://open?path={quote(str(result.lecture_path))}"])
+            _open_obsidian_note(result.lecture_path)
         self._reload_session_list(select_sid=p["sid"])
 
     def on_export(self):
@@ -2280,6 +2361,26 @@ class _SettingsDialog(QDialog):
             if key == s.get("asr_mode", "realtime"):
                 self.asr_combo.setCurrentIndex(idx)
         lay.addWidget(self.asr_combo)
+        lay.addWidget(QLabel("麦克风输入设备"))
+        self.mic_combo = _light_combo(QComboBox())
+        self.mic_combo.addItem("系统默认", "")
+        saved_mic = s.get("input_device") or ""
+        seen_saved = not saved_mic
+        for _idx, name, ch in list_input_devices():
+            self.mic_combo.addItem(f"{name}  ({ch} 声道)", name)
+            if name == saved_mic:
+                self.mic_combo.setCurrentIndex(self.mic_combo.count() - 1)
+                seen_saved = True
+        if saved_mic and not seen_saved:
+            self.mic_combo.addItem(f"{saved_mic}（未找到，仍使用该名称）", saved_mic)
+            self.mic_combo.setCurrentIndex(self.mic_combo.count() - 1)
+        lay.addWidget(self.mic_combo)
+        mic_tip = QLabel(
+            "Win11 默认有时是「立体声混音」而不是课堂麦，录到的是系统声音或全静音。"
+            "请选真实麦克风；录制中改设备将在下次开始录音时生效。")
+        mic_tip.setWordWrap(True)
+        mic_tip.setStyleSheet("color: gray; font-size: 11px;")
+        lay.addWidget(mic_tip)
         asr_tip = QLabel(
             "字幕（悬浮）：始终用轻量模型短窗跟读，尽量快。\n"
             "框内（英文/中文积累）：句子定稿后用大模型精修再翻译，可慢但更准。\n"
@@ -2312,7 +2413,8 @@ class _SettingsDialog(QDialog):
                 "notes_subdir": self.sub_edit.text().strip() or "01-章节笔记",
                 "concepts_subdir": self.concepts_edit.text().strip() or "02-概念卡片",
                 "translate_provider": self.provider_combo.currentData() or "deepseek",
-                "asr_mode": self.asr_combo.currentData() or "realtime"}
+                "asr_mode": self.asr_combo.currentData() or "realtime",
+                "input_device": self.mic_combo.currentData() or ""}
 
 
 def _fmt_dur(sec: float) -> str:

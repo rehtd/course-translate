@@ -5,6 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from unittest.mock import patch
+
 from app.audio_files import (  # noqa: E402
     compress_session, compress_wav, estimate_m4a_bytes, format_bytes,
     resolve_audio, session_wavs, wav_bytes_total,
@@ -13,7 +15,7 @@ from app.storage import Store  # noqa: E402
 
 
 def test_resolve_audio_exact_and_stem():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         d = Path(tmp)
         wav = d / "session_1.wav"
         wav.write_bytes(b"RIFF")
@@ -45,11 +47,16 @@ def _fake_run(cmd, capture_output=True, text=True, timeout=3600):
     return R()
 
 
+def _fake_argv(src, dest):
+    return ["ffmpeg", "-y", "-i", str(src), str(dest)]
+
+
 def test_compress_wav_deletes_source():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         wav = Path(tmp) / "session_9.wav"
         wav.write_bytes(b"W" * 1000)
-        dest = compress_wav(wav, run=_fake_run)
+        with patch("app.audio_files.encoder_argv", _fake_argv):
+            dest = compress_wav(wav, run=_fake_run)
         assert dest.name == "session_9.m4a"
         assert dest.is_file()
         assert not wav.exists()
@@ -57,7 +64,7 @@ def test_compress_wav_deletes_source():
 
 
 def test_compress_session_renames_continue_files():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         d = Path(tmp)
         sid = 7
         (d / f"session_{sid}.wav").write_bytes(b"A" * 200)
@@ -65,7 +72,8 @@ def test_compress_session_renames_continue_files():
         extra = [f"session_{sid}_cont1.wav"]
         assert len(session_wavs(d, sid, extra)) == 2
         assert wav_bytes_total(d, sid, extra) == 400
-        result = compress_session(d, sid, extra, run=_fake_run)
+        with patch("app.audio_files.encoder_argv", _fake_argv):
+            result = compress_session(d, sid, extra, run=_fake_run)
         assert result["renamed"] == [
             (f"session_{sid}.wav", f"session_{sid}.m4a"),
             (f"session_{sid}_cont1.wav", f"session_{sid}_cont1.m4a"),
@@ -76,7 +84,7 @@ def test_compress_session_renames_continue_files():
 
 
 def test_storage_rename_session_audio_file():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "t.db")
         sid = store.create_session("t")
         store.add_session_audio(sid, 1, "session_1_cont1.wav", 1.0)

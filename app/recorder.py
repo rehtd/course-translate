@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 from PySide6.QtCore import QObject, Signal
 
-from app import config
+from app import config, settings
 from app.audio import AudioSource
 from app.streamer import StreamingEngine
 from app.translate import (asr_initial_prompt, join_en, looks_cut,
@@ -209,7 +209,9 @@ class Recorder(QObject):
         self._anchor_wall = time.time()
         self._anchor_fed = 0.0
         self._start_workers()
-        self.src = AudioSource(sample_rate=config.SAMPLE_RATE, wav_out=str(wav_out))
+        self.src = AudioSource(
+            sample_rate=config.SAMPLE_RATE, wav_out=str(wav_out),
+            device=settings.load().get("input_device") or None)
         self.engine = StreamingEngine(
             sr=config.SAMPLE_RATE, partial_win=self._partial_win,
             asr_win=self._asr_win, partial_asr_win=self._partial_asr_win,

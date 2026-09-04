@@ -97,7 +97,7 @@ def test_translate_final_defers_then_stitches():
             self.calls.append(text)
             return f"ZH:{text}"
 
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         store = Store(Path(td) / "t.db")
         sid = store.create_session("t")
         tsl = Tsl()
@@ -131,7 +131,7 @@ def test_auth_error_no_retry():
 
 
 def test_glossary_and_failed_segments_store():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         store = Store(Path(td) / "t.db")
         cid = store.add_course("IS6335", "Data Visualization")
         store.replace_glossary(cid, [("Johns Hopkins", "约翰·霍普金斯")])
@@ -149,7 +149,7 @@ def test_glossary_and_failed_segments_store():
 
 
 def test_upsert_glossary_keeps_other_terms():
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         store = Store(Path(td) / "t.db")
         cid = store.add_course("IS6335", "DV")
         store.replace_glossary(cid, [("A", "甲"), ("B", "乙")])

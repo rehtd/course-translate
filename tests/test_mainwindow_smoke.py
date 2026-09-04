@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
+os.environ.setdefault("QT_SCALE_FACTOR", "1")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from PySide6.QtCore import Qt  # noqa: E402
@@ -16,14 +18,14 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from app.storage import Store  # noqa: E402
 from app.ui.main_window import (  # noqa: E402
     MainWindow, _SettingsDialog, _NotePreviewDialog, _ASR_MODES,
-    _GlossaryExtractDialog,
+    _GlossaryExtractDialog, _mic_fail_hint,
 )
 
 app = QApplication.instance() or QApplication([])
 
 
 def test_main_window_builds():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "smoke.db")
         w = MainWindow(store, warmup=False)
         assert w.windowTitle()
@@ -43,6 +45,8 @@ def test_main_window_builds():
         dlg.asr_combo.setCurrentIndex(idx)
         assert dlg.values()["asr_mode"] == "precise"
         assert dlg.values()["concepts_subdir"] == "02-概念卡片"
+        assert "input_device" in dlg.values()
+        assert dlg.mic_combo.count() >= 1
         w.close()
         print("PASS test_main_window_builds")
 
@@ -71,7 +75,7 @@ def test_main_window_builds_with_tencent_only():
             "concepts_subdir": "02-概念卡片",
             "translate_provider": "deepseek", "asr_mode": "realtime",
         }
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             store = Store(Path(tmp) / "smoke.db")
             w = MainWindow(store, warmup=False)
             assert w.tsl.name == "tencent"
@@ -102,7 +106,7 @@ def test_settings_lock_provider_while_recording():
 
 def test_app_active_does_not_hide_main_window():
     """录制中切回前台不得 hide 主窗口（旧 Dock 速览把 Cmd+Tab 当成点 Dock）。"""
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "smoke.db")
         w = MainWindow(store, warmup=False)
         w._recording_active = True
@@ -133,7 +137,7 @@ def test_note_preview_dialog_lists_cards():
 def test_load_session_bulk_no_clock_label():
     """历史课节一次性装载：回看一句一块（上英下中），不建富卡片。"""
     import time as _t
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "smoke.db")
         sid = store.create_session("t")
         t0 = 1_000_000.0
@@ -167,7 +171,7 @@ def test_load_session_bulk_no_clock_label():
 
 
 def test_workspace_record_vs_review():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "smoke.db")
         w = MainWindow(store, warmup=False)
         assert w._workspace == "review"
@@ -188,7 +192,7 @@ def test_workspace_record_vs_review():
 
 
 def test_fill_record_boxes_then_append():
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         store = Store(Path(tmp) / "smoke.db")
         sid = store.create_session("t")
         store.add_segment(sid, 1, 1.0, 2.0, "old en", "旧中")
@@ -206,7 +210,7 @@ def test_fill_record_boxes_then_append():
 def test_audio_routes_follow_m4a():
     """压缩后主录音只剩 m4a 时，回听路由仍能找到文件。"""
     from app import config
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         tmp = Path(tmp)
         audio = tmp / "audio"
         audio.mkdir()
@@ -241,6 +245,55 @@ def test_glossary_extract_dialog_selection():
     dlg.list.item(1).setCheckState(Qt.Checked)
     assert ("chart", "图") in dlg.selected_terms()
     print("PASS test_glossary_extract_dialog_selection")
+
+
+def test_mic_fail_hint_is_windows_copy():
+    """Windows 适配：麦克风失败文案必须指向 Win 设置，不能再写 macOS 路径。"""
+    msg = _mic_fail_hint(RuntimeError("PortAudio error"))
+    assert "PortAudio error" in msg
+    if sys.platform == "win32":
+        assert "隐私和安全性" in msg
+        assert "python.exe" in msg
+        assert "立体声混音" in msg
+        assert "隐私与安全性" not in msg
+    else:
+        assert "隐私与安全性" in msg
+        assert "同传课堂" in msg
+
+
+def test_windows_mic_request_does_not_block_ui():
+    """Windows 试开麦克风必须立刻返回，不能冻住「新建一节课」。"""
+    if sys.platform != "win32":
+        print("SKIP test_windows_mic_request_does_not_block_ui")
+        return
+    import threading
+    import time
+    from unittest.mock import patch
+
+    from app.mic_permission import request
+
+    gate = threading.Event()
+
+    class SlowStream:
+        def __init__(self, **kwargs):
+            gate.wait(3)
+
+        def start(self):
+            return None
+
+        def stop(self):
+            return None
+
+        def close(self):
+            return None
+
+    t0 = time.perf_counter()
+    with patch("sounddevice.InputStream", SlowStream):
+        request(lambda ok: None)
+        elapsed = time.perf_counter() - t0
+    gate.set()
+    assert elapsed < 0.5, f"request blocked UI for {elapsed:.2f}s"
+    print("PASS test_windows_mic_request_does_not_block_ui")
 
 
 if __name__ == "__main__":
