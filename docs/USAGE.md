@@ -2,13 +2,13 @@
 
 同传课堂：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可写入 Obsidian。
 
-仓库：`git clone https://github.com/rehtd/course-translate.git`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
+仓库：macOS `git clone https://github.com/rehtd/course-translate.git`；Windows `git clone -b feat/windows https://github.com/rehtd/course-translate.git`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
 
 ---
 
 ## 1. 环境
 
-- macOS 13+。Windows 还不能当稳定上课机。
+- macOS 13+（`main`）。Windows 10/11 请用 `feat/windows`，不要在 `main` 上当上课机。
 - `python3 --version` 为 **3.11 或更高**。系统自带 3.9 不够；不够就让使用者先装 3.11+。
 
 ## 2. 虚拟环境
@@ -32,9 +32,14 @@ pip install -r requirements.txt
 
 申请：
 
-- DeepSeek：[用量与控制台](https://platform.deepseek.com/usage)
-- 机器翻译（腾讯 / 百度 / 阿里）：[CSDN 教程](https://blog.csdn.net/weixin_44253490/article/details/126365385)；官方入口也在 [`.env.example`](../.env.example) 注释里
-- 百炼：`.env` 的 `DASHSCOPE_API_KEY`（见 `.env.example`）
+- DeepSeek：只要 **API Key**。[用量与控制台](https://platform.deepseek.com/usage)
+- 阿里百炼：只要 **API Key**（`DASHSCOPE_API_KEY`）。[百炼控制台](https://bailian.console.aliyun.com)
+- 腾讯云：需要 **SecretId + SecretKey**。[机器翻译](https://cloud.tencent.com/product/tmt)；步骤也可看 [CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
+- 百度：需要 **APP ID + Secret**。[百度翻译开放平台](https://fanyi-api.baidu.com)
+- 阿里云机器翻译：需要 **AccessKey ID + AccessKey Secret**。[阿里机器翻译](https://www.aliyun.com/product/ai/alimt)
+- Ollama：不用云 Key，`.env` 设 `TRANSLATE_PROVIDER=ollama`
+
+官方字段名也在 [`.env.example`](../.env.example) 注释里。
 
 若 **不存在** `.env`：
 
@@ -42,9 +47,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-- 使用者**没给 Key、也没让你写**：停下来让他自己填。不要编造、不要用别人的 Key。
-- 他把 Key 发给你，或明确说写入 `.env` / 从本机另一份自己的 `.env` 填过来：只改对应行，不要整文件覆盖，不要把 Key 贴回聊天，不要 commit `.env`。
-- 已有 `.env` 且没要求改：不要覆盖、不要主动打开。
+密钥不要发到聊天里。Agent 在仓库创建 `keys-inbox/`（Git 忽略），写入说明；使用者把文本放进去并标明哪家、哪一项。放好后再写入 `.env` 对应行，不要整文件覆盖，不要把内容贴回聊天，不要 commit `.env`。用完可删 `keys-inbox` 里的密钥文件。已有 `.env` 且使用者没要求改：不要覆盖。
 
 只打算用 Ollama、不填云 Key 时，设 `TRANSLATE_PROVIDER=ollama`。
 
@@ -92,7 +95,7 @@ Ollama 默认 `http://127.0.0.1:11434/v1`。
 
 ## Agent 不要做的
 
-- `git add .`；提交 `.env` / `data/` / 录音；**`git push`**
+- `git add .`；提交 `.env` / `data/` / 录音 / `keys-inbox/`；**`git push`**
 - 把 Key 写进聊天或会进 Git 的文件
 
 ## 不用 Agent 时
