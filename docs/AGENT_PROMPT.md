@@ -30,6 +30,7 @@
   - 百度：APP ID + Secret。https://fanyi-api.baidu.com
   - 阿里云机器翻译：AccessKey ID + AccessKey Secret。https://www.aliyun.com/product/ai/alimt
   - Ollama：不用云 Key，设 TRANSLATE_PROVIDER=ollama
+  腾讯 / 百度 / 阿里机器翻译申请步骤：https://blog.csdn.net/weixin_44253490/article/details/126365385
 
 执行顺序：
 1. Windows 确认当前是 feat/windows。按 docs/USAGE.md 安装依赖。创建 keys-inbox/ 并写说明，等使用者放好密钥文本后再写入 .env、启动，直到主窗口可打开。
