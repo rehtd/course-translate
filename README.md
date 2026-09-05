@@ -31,12 +31,14 @@
 
 | 引擎 | 你要准备 | 申请 |
 |------|----------|------|
-| DeepSeek | 只要 **API Key**（计入笔记才必须） | [控制台](https://platform.deepseek.com/usage) |
-| 阿里百炼 | 只要 **API Key** | [百炼](https://bailian.console.aliyun.com) |
-| 腾讯云机器翻译 | **SecretId + SecretKey** | [腾讯云 TMT](https://cloud.tencent.com/product/tmt) |
-| 百度翻译 | **APP ID + Secret** | [百度开放平台](https://fanyi-api.baidu.com) |
-| 阿里云机器翻译 | **AccessKey ID + AccessKey Secret** | [阿里机器翻译](https://www.aliyun.com/product/ai/alimt) |
+| DeepSeek | 只要 **API Key**（计入笔记才必须） | [用量与控制台](https://platform.deepseek.com/usage) |
+| 阿里百炼 | 只要 **API Key** | [百炼控制台](https://bailian.console.aliyun.com) |
+| 腾讯云机器翻译 | **SecretId + SecretKey** | [腾讯云 TMT](https://cloud.tencent.com/product/tmt) · [申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
+| 百度翻译 | **APP ID + Secret** | [百度开放平台](https://fanyi-api.baidu.com) · [申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
+| 阿里云机器翻译 | **AccessKey ID + AccessKey Secret** | [阿里机器翻译](https://www.aliyun.com/product/ai/alimt) · [申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385) |
 | Ollama | 不用云 Key，本机/局域网起好模型 | `.env` 设 `TRANSLATE_PROVIDER=ollama` |
+
+腾讯 / 百度 / 阿里机器翻译怎么开通，按这篇：[CSDN 申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385)。DeepSeek Key 在 [用量与控制台](https://platform.deepseek.com/usage) 创建。
 
 - **第一次识别会下载本地 Whisper 模型**（约数百 MB，缓存在用户目录，不进 Git）。需要联网；最好下课前先对着麦克风说几句。
 - **笔记（可选）**：DeepSeek Key + 设置里选过 Obsidian 库。不用笔记不影响上课。
@@ -128,6 +130,7 @@ git clone -b feat/windows https://github.com/rehtd/course-translate.git
   - 百度：APP ID + Secret。https://fanyi-api.baidu.com
   - 阿里云机器翻译：AccessKey ID + AccessKey Secret。https://www.aliyun.com/product/ai/alimt
   - Ollama：不用云 Key，设 TRANSLATE_PROVIDER=ollama
+  腾讯 / 百度 / 阿里机器翻译申请步骤：https://blog.csdn.net/weixin_44253490/article/details/126365385
 
 执行顺序：
 1. Windows 确认当前是 feat/windows。按 docs/USAGE.md 安装依赖。创建 keys-inbox/ 并写说明，等使用者放好密钥文本后再写入 .env、启动，直到主窗口可打开。

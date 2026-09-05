@@ -43,12 +43,12 @@ pip install -r requirements.txt
 
 - DeepSeek：只要 **API Key**。[用量与控制台](https://platform.deepseek.com/usage)
 - 阿里百炼：只要 **API Key**（`DASHSCOPE_API_KEY`）。[百炼控制台](https://bailian.console.aliyun.com)
-- 腾讯云：需要 **SecretId + SecretKey**。[机器翻译](https://cloud.tencent.com/product/tmt)；步骤也可看 [CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
+- 腾讯云：需要 **SecretId + SecretKey**。[机器翻译](https://cloud.tencent.com/product/tmt)
 - 百度：需要 **APP ID + Secret**。[百度翻译开放平台](https://fanyi-api.baidu.com)
 - 阿里云机器翻译：需要 **AccessKey ID + AccessKey Secret**。[阿里机器翻译](https://www.aliyun.com/product/ai/alimt)
 - Ollama：不用云 Key，`.env` 设 `TRANSLATE_PROVIDER=ollama`
 
-官方字段名也在 [`.env.example`](../.env.example) 注释里。
+腾讯 / 百度 / 阿里机器翻译怎么开通，按这篇：[CSDN 申请教程](https://blog.csdn.net/weixin_44253490/article/details/126365385)。官方字段名也在 [`.env.example`](../.env.example) 注释里。
 
 若 **不存在** `.env`：
 
