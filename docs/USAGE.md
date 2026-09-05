@@ -6,29 +6,14 @@
 
 ---
 
-## 1. 工作区
+## 1. 环境
 
-当前目录已有 `main.py` 和 `docs/USAGE.md`：不要再 clone，不要建 `*-fresh`，不要把别的项目合并进来。
+- **本分支 Windows 10/11**。不要为 Windows 重写识别/翻译；系统壳见 [WINDOWS.md](WINDOWS.md)。macOS 请用 `main`。
+- `py -3.12 --version` / `python3 --version` 为 **3.11 或更高**（Windows 推荐 3.11 / 3.12 64 位）。系统自带 3.9 不够；不够就让使用者先装。
 
-从**另一个文件夹**的聊天里发来提示词：只 clone 一次到独立目录（例如 `~/Projects/course-translate`），只在那份里装，不要改用户正在打开的其它项目。Windows 必须是 `feat/windows`。
+## 2. 虚拟环境
 
-## 2. 环境
-
-- **macOS 13+**，或本分支 **Windows 10/11**。不要为 Windows 重写识别/翻译；系统壳见 [WINDOWS.md](WINDOWS.md)。
-- `python3 --version` / `py -3.12 --version` 为 **3.11 或更高**（Windows 推荐 3.11 / 3.12 64 位）。系统自带 3.9 不够；不够就让使用者先装。
-
-## 3. 虚拟环境
-
-在仓库根目录：
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip
-pip install -r requirements.txt
-```
-
-Windows（PowerShell，仓库根目录）：
+在仓库根目录（PowerShell）：
 
 ```powershell
 py -3.12 -m venv .venv
@@ -37,9 +22,18 @@ python -m pip install -U pip
 pip install -r requirements.txt
 ```
 
+macOS / Git Bash：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -r requirements.txt
+```
+
 不要把 `.venv/` 提交进 Git。不要写死某台机器的 Python 路径，不要用别人拷来的虚拟环境。
 
-## 4. Key
+## 3. Key
 
 启动要有 **至少一种** 真实翻译配置：腾讯云、百度、阿里机器翻译、阿里百炼、DeepSeek，或 `.env` 里 `TRANSLATE_PROVIDER=ollama`。`.env.example` 里的 `your-` / `sk-your-` 不算。
 
@@ -47,46 +41,47 @@ pip install -r requirements.txt
 
 申请：
 
-- DeepSeek：[用量与控制台](https://platform.deepseek.com/usage)
-- 机器翻译（腾讯 / 百度 / 阿里）：[CSDN 教程](https://blog.csdn.net/weixin_44253490/article/details/126365385)；官方入口也在 [`.env.example`](../.env.example) 注释里
-- 百炼：`.env` 的 `DASHSCOPE_API_KEY`（见 `.env.example`）
+- DeepSeek：只要 **API Key**。[用量与控制台](https://platform.deepseek.com/usage)
+- 阿里百炼：只要 **API Key**（`DASHSCOPE_API_KEY`）。[百炼控制台](https://bailian.console.aliyun.com)
+- 腾讯云：需要 **SecretId + SecretKey**。[机器翻译](https://cloud.tencent.com/product/tmt)；步骤也可看 [CSDN](https://blog.csdn.net/weixin_44253490/article/details/126365385)
+- 百度：需要 **APP ID + Secret**。[百度翻译开放平台](https://fanyi-api.baidu.com)
+- 阿里云机器翻译：需要 **AccessKey ID + AccessKey Secret**。[阿里机器翻译](https://www.aliyun.com/product/ai/alimt)
+- Ollama：不用云 Key，`.env` 设 `TRANSLATE_PROVIDER=ollama`
+
+官方字段名也在 [`.env.example`](../.env.example) 注释里。
 
 若 **不存在** `.env`：
 
-```bash
-cp .env.example .env
+```bat
+copy .env.example .env
 ```
 
-Windows：`copy .env.example .env`
+macOS / Git Bash：`cp .env.example .env`
 
-- 使用者**没给 Key、也没让你写**：停下来让他自己填。不要编造、不要用别人的 Key。
-- 他把 Key 发给你，或明确说写入 `.env` / 从本机另一份自己的 `.env` 填过来：只改对应行，不要整文件覆盖，不要把 Key 贴回聊天，不要 commit `.env`。
-- 已有 `.env` 且没要求改：不要覆盖、不要主动打开。
+密钥不要发到聊天里。Agent 在仓库创建 `keys-inbox/`（Git 忽略），写入说明；使用者把文本放进去并标明哪家、哪一项。放好后再写入 `.env` 对应行，不要整文件覆盖，不要把内容贴回聊天，不要 commit `.env`。用完可删 `keys-inbox` 里的密钥文件。已有 `.env` 且使用者没要求改：不要覆盖。
 
 只打算用 Ollama、不填云 Key 时，设 `TRANSLATE_PROVIDER=ollama`。
 
-## 5. 启动
+## 4. 启动
 
-```bash
-source .venv/bin/activate
+```powershell
+.\.venv\Scripts\Activate.ps1
 python main.py
 ```
 
-macOS：Finder 双击 `启动同传课堂.command`（第一次可能要右键 → 打开）。
+或双击仓库根目录的 `启动同传课堂.vbs`（无黑框）或 `启动同传课堂.bat`。不要用 `.command` / `同传课堂.app`。
 
-Windows：双击 `启动同传课堂.vbs`（无黑框）或 `启动同传课堂.bat`。不要用 `.command` / `同传课堂.app`。
-
-若弹「缺少翻译配置」，回到第 4 步。
+若弹「缺少翻译配置」，回到第 3 步。
 
 第一次识别会下载 Whisper 模型（缓存在用户目录）。连网，最好下课前先跑一次。
 
-## 6. 麦克风
+## 5. 麦克风
 
 应用自己向系统申请。启动后（或第一次点「新建一节课」）弹出系统对话框，点「允许」。**不要先去系统设置里翻。**
 
-曾经点过「不允许」：用应用里的「打开麦克风设置」，打开开关后**完全退出应用再打开**（不要只关窗口）。
+曾经点过「不允许」：用应用里的「打开麦克风设置」，打开开关后**完全退出应用再打开**（不要只关窗口）。Windows 文案见 [WINDOWS.md](WINDOWS.md)。
 
-## 7. 翻译引擎怎么选
+## 6. 翻译引擎怎么选
 
 设置里的「翻译引擎」只管**课上中文译文**。英文识别是本地 Whisper。笔记整理始终走 DeepSeek。
 
@@ -98,31 +93,32 @@ Windows：双击 `启动同传课堂.vbs`（无黑框）或 `启动同传课堂.
 |------|------|------|
 | **DeepSeek** | 课堂中文最顺；吃术语表和上下文；课后笔记也用它 | 要联网；按量计费；上课不是必须 |
 | **阿里百炼 Qwen** | 同样吃术语表和上下文；新用户常有免费额度 | 要另申请百炼 Key；课堂用语通常不如 DeepSeek 稳 |
-| **Ollama** | 本机或局域网，可断网；吃术语表 | 先自己起 Ollama 并拉模型；Mac 上往往偏慢 |
+| **Ollama** | 本机或局域网，可断网；吃术语表 | 先自己起 Ollama 并拉模型；本机往往偏慢 |
 | **腾讯云机器翻译** | 快；每月约 500 万字符额度 | 不吃术语表；课名/人名易乱译 |
 | **百度翻译** | 快；有免费字符额度 | 不吃术语表；标准版大约每秒 1 个请求 |
 | **阿里云机器翻译** | 和腾讯/百度同类 | 不吃术语表 |
 
 Ollama 默认 `http://127.0.0.1:11434/v1`。
 
-## 8. 本机数据
+## 7. 本机数据
 
 全部在仓库下的 `data/`（Git 忽略）：转写库、录音、课件、本机设置。换电脑不会自动带上。不要把录音推进 Git。
 
 ## Agent 不要做的
 
-- `git add .`；提交 `.env` / `data/` / 录音；**`git push`**
+- `git add .`；提交 `.env` / `data/` / 录音 / `keys-inbox/`；**`git push`**
 - 把 Key 写进聊天或会进 Git 的文件
 - 做成安装包；为 Windows 重写识别/翻译
 
 ## 不用 Agent 时
 
-```bash
-git clone https://github.com/rehtd/course-translate.git
+```bat
+git clone -b feat/windows https://github.com/rehtd/course-translate.git
 cd course-translate
-python3 -m venv .venv && source .venv/bin/activate
+py -3.12 -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+copy .env.example .env
 ```
 
 编辑 `.env` 至少填一种翻译 Key，然后 `python main.py`。上课怎么点见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。

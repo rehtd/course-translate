@@ -5,6 +5,7 @@
 *.pem
 *.key
 credentials.json
+keys-inbox/
 
 # Runtime data: database, recordings, vault path, logs
 data/
