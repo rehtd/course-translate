@@ -2,7 +2,7 @@
 
 英文课用的本机桌面同传：麦克风进声，本地 Whisper 听英文，再译成中文。字幕、对照和录音都在你电脑上完成，不把录音送到云端识别。
 
-本分支 **`feat/windows`** 是 **Windows 上课版**（只换置顶/点穿、字体、启动器等系统壳，识别和翻译与 Mac 相同）。macOS 请用默认分支 `main`。
+本分支 **`feat/windows`** 是 **Windows 上课版**（只换置顶/点穿、字体、启动器等系统壳，识别和翻译与 Mac 相同）。macOS 请用默认分支 `main`（已测过的上课版；作者不会再往 `main` 里加自己后来做的功能）。笔记格式、自己想要的界面，在你电脑上的副本里改即可。
 
 ## 课上长什么样
 
@@ -21,13 +21,13 @@
 | 术语表 | 课前手改或课后提取；喂给下一节课的识别和部分翻译，不是概念卡 |
 | 计入笔记 | 可选。DeepSeek 整理后写入 Obsidian：课节页 + 跨课概念卡。也可让 Agent 改成你自己的笔记库 |
 
-不做：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、做成「下载即用」的安装包。也不要用 Cursor **云端 Agent** 装（那是 Ubuntu 虚拟机，装完打不开你电脑上的窗口）。
+不做：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、做成「下载即用」的安装包。装的时候用本机助手（推荐 WorkBuddy），不要用网页里的云端 Agent。
 
 ## 你需要准备
 
 - **电脑**：Windows 10/11（本分支 `feat/windows`），或 macOS 13+（clone `main`）。**Python 3.11+**（Windows 推荐 3.11 / 3.12 64 位；Mac 系统自带 3.9 不够）。
-- **本机 Cursor**（或同类能跑终端的助手），不要用网页/云端 Agent。
-- **至少一种翻译凭证**（上课够用）。不要拷贝别人的 `.env` / `.venv` / `data/`。不要把 Key 发到聊天里：Agent 会建 `keys-inbox/`，你把文本放进去并标明哪家、哪一项。
+- **本机 [WorkBuddy](https://www.codebuddy.cn/work/)**（推荐，新手好上手）。每天可领 **100 积分**；把模型切成 **DeepSeek V4 Flash**，装这一套通常用不完。也可用其它能跑终端的本机助手，不要用网页云端 Agent。
+- **至少一种翻译凭证**（上课够用）。不要拷贝别人的 `.env` / `.venv` / `data/`。不要把 Key 发到聊天里：WorkBuddy 会建 `keys-inbox/`，你把文本放进去，**文件名写清哪家、哪一项**（例如 `deepseek-api-key.txt`、`tencent-secret-id.txt`）。
 
 | 引擎 | 你要准备 | 申请 |
 |------|----------|------|
@@ -88,6 +88,11 @@ flowchart LR
 
 ## 怎么开始
 
+推荐用 [WorkBuddy](https://www.codebuddy.cn/work/)：下载本机客户端 → 打开仓库 → **把模型切成 DeepSeek V4 Flash** → 把**下面这一段提示词**整段发给它。后面的安装、读密钥、点开窗口、测能不能用，都交给它。
+
+1. 打开 [WorkBuddy](https://www.codebuddy.cn/work/) 下载（Mac / Windows 都有）。每天领取积分（目前 100），模型选 **DeepSeek V4 Flash**。
+2. 克隆本分支：
+
 ```bash
 # Windows（本分支）
 git clone -b feat/windows https://github.com/rehtd/course-translate.git
@@ -96,24 +101,29 @@ git clone -b feat/windows https://github.com/rehtd/course-translate.git
 # git clone https://github.com/rehtd/course-translate.git
 ```
 
-在**本机** Cursor（或同类助手）里打开克隆下来的文件夹，把**下面整段**发给它。不要用云端 Agent。
+3. 用 WorkBuddy **打开这个文件夹**，把下面代码块整段贴进对话。不要只说「帮我装一下」。
+4. 它会建 `keys-inbox/` 并写说明。你去申请 API（上课一种即可），把 Key 放进该文件夹，**文件名写明是哪家、哪一项**，再告诉它「放好了」。不要把 Key 发到聊天里。
+5. 其余交给 WorkBuddy：装依赖、写入 `.env`、启动，直到窗口能开；再对着麦克风说几句，确认字幕和译文在动。
+6. 能用之后用仓库里的 [启动同传课堂.vbs](启动同传课堂.vbs) 或 `.bat`。不要做成安装包，不要提交 `.env`。
 
-不用 Agent：见 [docs/USAGE.md](docs/USAGE.md)。装好之后怎么点界面：见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。系统壳：[docs/WINDOWS.md](docs/WINDOWS.md)。
+笔记格式、自己想加的功能：在这份副本里让 WorkBuddy 改即可。
+
+不用助手、自己装：见 [docs/USAGE.md](docs/USAGE.md)。装好之后怎么点界面：见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。系统壳：[docs/WINDOWS.md](docs/WINDOWS.md)。
 
 ### 本分支 feat/windows
 
 功能跟 Mac 上课版对齐，只适配窗口置顶/点穿、字体、打开笔记、麦克风权限与启动器。Windows 双击 [启动同传课堂.vbs](启动同传课堂.vbs)（无黑框）或 [启动同传课堂.bat](启动同传课堂.bat)，不要用 `启动同传课堂.command` / `同传课堂.app`。
 
-### 发给 Agent 的提示词（整段复制）
+### 发给 WorkBuddy 的提示词（只复制下面这一段）
 
 同一份也在 [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md)。改这一段时两处一起改。
 
 ```
-角色：编码助手。任务：按公开仓库在使用者面前这台电脑上部署「同传课堂」，并按仓库手册引导完成上课操作。不要用 Cursor 云端 Agent；终端即使显示 Linux 也是沙箱，不要按 Ubuntu 安装。
+角色：编码助手。任务：按公开仓库在使用者面前这台电脑上部署「同传课堂」，并按仓库手册引导完成上课操作。推荐使用者用本机 WorkBuddy（https://www.codebuddy.cn/work/），模型切 DeepSeek V4 Flash。不要用网页云端 Agent；终端即使显示 Linux 也是沙箱，不要按 Ubuntu 安装。
 
 仓库：https://github.com/rehtd/course-translate.git
-分支：Windows 必须用 feat/windows（git clone -b feat/windows https://github.com/rehtd/course-translate.git）。macOS 用 main。
-范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。
+分支：Windows 必须用 feat/windows（git clone -b feat/windows https://github.com/rehtd/course-translate.git）。macOS 用 main。main 是已测过的上课版，不要把作者未进 main 的功能当成仓库自带。
+范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。使用者若要改笔记格式或加自己的功能，只改本机副本，禁止 git push。
 
 权威文档：
 1. docs/USAGE.md — 环境、依赖、密钥、启动、麦克风授权
@@ -122,7 +132,13 @@ git clone -b feat/windows https://github.com/rehtd/course-translate.git
 
 策略：
 - Git：禁止 git add .；禁止 git push。不要提交 .env、data/、录音、keys-inbox/。
-- 密钥：不要让使用者把 Key 发到聊天里，也不要在对话中复述。在仓库创建 keys-inbox/（已 gitignore），写入说明.txt，列出各家要填什么、去哪申请。使用者在该文件夹放文本，写明哪份是哪家、哪一项。放好后告诉 Agent，Agent 只改 .env 对应行。用完可删 keys-inbox 里的密钥文件。
+- 密钥：不要让使用者把 Key 发到聊天里，也不要在对话中复述。在仓库创建 keys-inbox/（已 gitignore），写入说明.txt，列出各家要填什么、去哪申请、建议文件名。使用者把文本放进该文件夹，文件名必须写清哪家、哪一项，例如：
+  - deepseek-api-key.txt（只要 API Key）
+  - dashscope-api-key.txt（阿里百炼，只要 API Key）
+  - tencent-secret-id.txt 与 tencent-secret-key.txt
+  - baidu-app-id.txt 与 baidu-secret.txt
+  - aliyun-access-key-id.txt 与 aliyun-access-key-secret.txt
+  放好后告诉你，你只改 .env 对应行。用完可删 keys-inbox 里的密钥文件。
   各家字段（上课填一种即可；计入笔记才要 DeepSeek）：
   - DeepSeek：只要 API Key。https://platform.deepseek.com/usage
   - 阿里百炼：只要 API Key。https://bailian.console.aliyun.com
@@ -134,15 +150,15 @@ git clone -b feat/windows https://github.com/rehtd/course-translate.git
 
 执行顺序：
 1. Windows 确认当前是 feat/windows。按 docs/USAGE.md 安装依赖。创建 keys-inbox/ 并写说明，等使用者放好密钥文本后再写入 .env、启动，直到主窗口可打开。
-2. 按 docs/AGENT_GUIDE.md 引导界面操作（先读操作总表）。
+2. 冒烟：引导新建课程 → 新建一节课 → 对着麦克风说几句英文。确认底部英文字幕在动、主窗口中文有译文（可慢几秒）。第一次识别会下载 Whisper，需要联网。
+3. 按 docs/AGENT_GUIDE.md 引导其余界面（先读操作总表）。
+4. 窗口能用之后，若使用者要入口：macOS 可做本机启动器放到「应用程序」或 Dock（不要提交进 Git，不要做成安装包）；Windows 用仓库里的 启动同传课堂.vbs 或 .bat。
 
 引导约定：
 - Agent 执行终端命令、说明按钮与下一步；点击界面、选择路径由使用者完成。
 - 一次只给出一步，待使用者确认后再继续。
 - 系统弹出麦克风授权时，提示使用者点「允许」。
 - 课间引导暂停，不要结束。录制中不要引导切换课程、课节或翻译引擎。
-- macOS：需要的话可做 Dock / 「启动同传课堂.command」入口；启动器不要提交进 Git，不要做成安装包。
-- Windows：用仓库里的 启动同传课堂.vbs 或 .bat，不要另做安装包。
 ```
 
 不要提交 `.env`、`data/`、录音、`keys-inbox/`；不要 `git add .`。课节和录音只在你电脑上的 `data/`（Git 忽略），换电脑不会自动带上。
