@@ -91,18 +91,10 @@ flowchart LR
 推荐用 [WorkBuddy](https://www.codebuddy.cn/work/)：下载本机客户端 → 打开仓库 → **把模型切成 DeepSeek V4 Flash** → 把**下面这一段提示词**整段发给它。后面的安装、读密钥、点开窗口、测能不能用，都交给它。
 
 1. 打开 [WorkBuddy](https://www.codebuddy.cn/work/) 下载（Mac / Windows 都有）。每天领取积分（目前 100），模型选 **DeepSeek V4 Flash**。
-2. 克隆 **`main`**（Windows 上课改用 `feat/windows`）：
+2. 新建任务
 
-```bash
-# macOS（默认 main，大家下这个）
-git clone https://github.com/rehtd/course-translate.git
-
-# Windows 上课
-git clone -b feat/windows https://github.com/rehtd/course-translate.git
-```
-
-3. 用 WorkBuddy **打开这个文件夹**，把下面代码块整段贴进对话。不要只说「帮我装一下」。
-4. 它会建 `keys-inbox/` 并写说明。你去申请 API（上课一种即可），把 Key 放进该文件夹，**文件名写明是哪家、哪一项**，再告诉它「放好了」。不要把 Key 发到聊天里。
+3. 把下面的prompt交给workbuddy整段贴进对话，推荐指定文件夹，方便管理。
+4. 它会建 `keys-inbox/` 并写说明。你去申请 API（上课一种即可），把 Key 放进该文件夹，**文件名写明是哪家、哪一项**，再告诉它「放好了」。不要把 Key 发到聊天里（也可以放但是不推荐），也可以自己把apikey写在一个文档里让workbuddy去读取。
 5. 其余交给 WorkBuddy：装依赖、写入 `.env`、启动，直到窗口能开；再对着麦克风说几句，确认字幕和译文在动。
 6. 能用之后，可再让它做一个启动程序放到「应用程序」（Mac）或用仓库里的 `.vbs` / `.bat`（Windows）。启动器只留在你电脑上，不要提交进 Git。
 
