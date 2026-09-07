@@ -152,3 +152,9 @@ flowchart LR
 ```
 
 不要提交 `.env`、`data/`、录音、`keys-inbox/`；不要 `git add .`。课节和录音只在你电脑上的 `data/`（Git 忽略），换电脑不会自动带上。
+
+## 使用反馈
+
+装不上、窗口打不开、课上没声音 / 字幕 / 翻译有问题：请开一条 [GitHub Issue](https://github.com/rehtd/course-translate/issues/new?template=feedback.md)（选「使用反馈」）。Mac、Windows 都走这里。
+
+写清系统、用的分支（`main` 或 `feat/windows`）、Python 版本、发生了什么。不要 `git push`，不要贴 `.env`、Key、录音。Windows 可附上终端报错；若在 `feat/windows` 装过，也可附 `scripts/check_ready.py` 的整段输出。

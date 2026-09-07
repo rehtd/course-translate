@@ -2,7 +2,7 @@
 
 同传课堂：麦克风 → 本地 Whisper → 翻译 → 主窗口英中对照 + 底部英文悬浮字幕。课后可写入 Obsidian。
 
-仓库：macOS `git clone https://github.com/rehtd/course-translate.git`；Windows `git clone -b feat/windows https://github.com/rehtd/course-translate.git`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。同学推荐用 [WorkBuddy](https://www.codebuddy.cn/work/) 按 [README](../README.md)「怎么开始」把提示词整段发给它（模型切 DeepSeek V4 Flash）。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。
+仓库：macOS `git clone https://github.com/rehtd/course-translate.git`；Windows `git clone -b feat/windows https://github.com/rehtd/course-translate.git`。**不要 `git push`**。不要拷贝别人的 `.env` / `.venv` / `data/`。同学推荐用 [WorkBuddy](https://www.codebuddy.cn/work/) 按 [README](../README.md)「怎么开始」把提示词整段发给它（模型切 DeepSeek V4 Flash）。点界面见 [AGENT_GUIDE.md](AGENT_GUIDE.md)。装不上或课上有问题：开 [GitHub Issue](https://github.com/rehtd/course-translate/issues/new?template=feedback.md)，不要贴 Key。
 
 ---
 
