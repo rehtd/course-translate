@@ -203,6 +203,45 @@ def test_fill_record_boxes_then_append():
         print("PASS test_fill_record_boxes_then_append")
 
 
+def test_record_boxes_follow_only_when_at_bottom():
+    """录制大框：在底部跟新译文；往上翻看旧句时不被拉回。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        store = Store(Path(tmp) / "smoke.db")
+        w = MainWindow(store, warmup=False)
+        w.zh_box.setFixedHeight(140)
+        w.en_box.setFixedHeight(140)
+        for i in range(40):
+            w._append_zh(f"旧句 {i}")
+            w._append_en(f"old {i}")
+        app.processEvents()
+        zh_sb = w.zh_box.verticalScrollBar()
+        en_sb = w.en_box.verticalScrollBar()
+        assert zh_sb.maximum() > 0
+        assert zh_sb.value() == zh_sb.maximum(), "在底部时应跟读"
+        zh_sb.setValue(0)
+        en_sb.setValue(0)
+        app.processEvents()
+        assert w._zh_sticky is False
+        assert w._en_sticky is False
+        held_zh, held_en = zh_sb.value(), en_sb.value()
+        w._on_seg(1, 1.0, 2.0, "new en", "新译文")
+        app.processEvents()
+        app.processEvents()
+        assert zh_sb.value() <= held_zh + 8, f"中文框被拉走 {held_zh} -> {zh_sb.value()}"
+        assert en_sb.value() <= held_en + 8, f"英文框被拉走 {held_en} -> {en_sb.value()}"
+        zh_sb.setValue(zh_sb.maximum())
+        en_sb.setValue(en_sb.maximum())
+        app.processEvents()
+        assert w._zh_sticky and w._en_sticky
+        w._on_seg(2, 3.0, 4.0, "tail en", "跟读译文")
+        app.processEvents()
+        app.processEvents()
+        assert zh_sb.value() == zh_sb.maximum(), "回到底部后应继续跟读中文"
+        assert en_sb.value() == en_sb.maximum(), "回到底部后应继续跟读英文"
+        w.close()
+        print("PASS test_record_boxes_follow_only_when_at_bottom")
+
+
 def test_audio_routes_follow_m4a():
     """压缩后主录音只剩 m4a 时，回听路由仍能找到文件。"""
     from app import config

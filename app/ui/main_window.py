@@ -8,7 +8,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette, QTextCursor
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                                QFrame, QHBoxLayout, QInputDialog, QLabel,
@@ -301,6 +301,7 @@ class MainWindow(QMainWindow):
         self._model_error = ""
         self._recording_active = False
         self._full_dlg = None
+        self._box_scroll_lock = 0
         self._workspace = "review"   # record | review
 
         self.setWindowTitle("同传课堂")
@@ -481,6 +482,7 @@ class MainWindow(QMainWindow):
             "中文译文", "句子定稿后，中文译文按顺序累积在这里…")
         self._en_sticky = True
         self._zh_sticky = True
+        self._box_scroll_lock = 0
         self.en_box.verticalScrollBar().valueChanged.connect(
             lambda _v: self._on_box_scrolled(self.en_box, "_en_sticky"))
         self.zh_box.verticalScrollBar().valueChanged.connect(
@@ -634,6 +636,8 @@ class MainWindow(QMainWindow):
 
     def _on_box_scrolled(self, box, flag: str):
         """英/中积累框：停在底部则跟随新句，滚上去看前面则不拉回。"""
+        if self._box_scroll_lock:
+            return
         sb = box.verticalScrollBar()
         setattr(self, flag, sb.maximum() - sb.value() < 24)
 
@@ -646,14 +650,49 @@ class MainWindow(QMainWindow):
         self._append_follow(self.zh_box, zh, "_zh_sticky")
 
     def _append_follow(self, box, text: str, flag: str):
-        # 先记下是否在底部。appendPlainText 会把光标放到文末并滚到底，
-        # 若不先记下，往上翻看时也会被当成「在底部」拽回去。
+        """在底部就跟到新句；往上翻看旧句时钉住视口，不被文末光标拽回去。"""
         follow = getattr(self, flag)
         sb = box.verticalScrollBar()
         old = sb.value()
-        box.appendPlainText(text)
-        box.appendPlainText("")
-        sb.setValue(sb.maximum() if follow else old)
+        view_cursor = QTextCursor(box.textCursor())
+        self._box_scroll_lock += 1
+        try:
+            end = QTextCursor(box.document())
+            end.movePosition(QTextCursor.End)
+            body = box.toPlainText()
+            prefix = "\n" if body and not body.endswith("\n") else ""
+            end.insertText(f"{prefix}{text}\n\n")
+            if follow:
+                end.movePosition(QTextCursor.End)
+                box.setTextCursor(end)
+                sb.setValue(sb.maximum())
+            else:
+                box.setTextCursor(view_cursor)
+                sb.setValue(old)
+        finally:
+            self._box_scroll_lock -= 1
+        QTimer.singleShot(
+            0, lambda: self._after_box_append(box, flag, follow, old, view_cursor))
+
+    def _after_box_append(self, box, flag, follow, old, view_cursor):
+        # 排版后文档变高：跟读滚到新底；翻看旧句再钉一次原来的位置。
+        if follow:
+            if not getattr(self, flag):
+                return
+            self._box_scroll_lock += 1
+            try:
+                box.verticalScrollBar().setValue(box.verticalScrollBar().maximum())
+            finally:
+                self._box_scroll_lock -= 1
+            return
+        if getattr(self, flag):
+            return
+        self._box_scroll_lock += 1
+        try:
+            box.setTextCursor(view_cursor)
+            box.verticalScrollBar().setValue(old)
+        finally:
+            self._box_scroll_lock -= 1
 
     def _add_marker_card(self, kind, note, t):
         self._drop_placeholder()

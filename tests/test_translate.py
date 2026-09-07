@@ -68,6 +68,13 @@ def test_en_truncated_and_stitch():
     assert should_stitch("when we look at the", "gradient descent") is True
     assert should_stitch("This is the end of the story", "Next we discuss risk.") is False
     assert should_stitch("OK.", "Let's continue.") is False
+    assert looks_cut("so the first") is True
+    assert looks_cut("the next") is True
+    assert looks_cut("This is important") is False
+    assert should_stitch("so the first", "step is to") is True
+    assert should_stitch("so the first", "Step of the method.") is True
+    assert should_stitch("so the first", "Now we discuss risk.") is False
+    assert should_stitch("the next", "layer of the network") is True
     chain = pending_truncated([
         (1, "hello there.", "你好。"),
         (2, "when we look at the", ""),
@@ -116,6 +123,21 @@ def test_translate_final_defers_then_stitches():
             "SELECT translated_text FROM segments WHERE session_id=? AND seq=1",
             (sid,)).fetchone()
         assert row[0] == zh2
+        zh3 = rec._translate_final(store, tsl, sid, 3, "so the first")
+        assert zh3 == ""
+        store.add_segment(sid, 3, 2, 3, "so the first", zh3)
+        zh4 = rec._translate_final(store, tsl, sid, 4, "step is gradient descent.")
+        assert zh4 == "ZH:so the first step is gradient descent."
+        store.add_segment(sid, 4, 3, 4, "step is gradient descent.", zh4)
+        zh5 = rec._translate_final(store, tsl, sid, 5, "do this first")
+        assert zh5 == ""
+        store.add_segment(sid, 5, 4, 5, "do this first", zh5)
+        zh6 = rec._translate_final(store, tsl, sid, 6, "Now we discuss risk.")
+        assert zh6 == "ZH:Now we discuss risk."
+        row5 = store.conn.execute(
+            "SELECT translated_text FROM segments WHERE session_id=? AND seq=5",
+            (sid,)).fetchone()
+        assert row5[0] == "ZH:do this first"
     print("PASS translate_final_defers_then_stitches")
 
 

@@ -46,6 +46,24 @@ _HANGING_LAST = frozenset({
     "is", "are", "was", "were", "be", "been", "being",
     "which", "who", "whom", "whose",
 })
+# 实词但常被切在短语中间：first step / next layer。不能像 the/of 那样
+# 无条件拼上下一句，否则 "that's first" + "Now we…" 会被焊在一起。
+_HANGING_WEAK = frozenset({
+    "first", "second", "third", "fourth", "fifth",
+    "sixth", "seventh", "eighth", "ninth", "tenth",
+    "last", "next", "final", "former", "latter",
+    "each", "every", "another", "other",
+})
+_NEW_SENTENCE_START = frozenset({
+    "now", "so", "then", "well", "okay", "ok", "alright",
+    "actually", "however", "therefore", "thus", "anyway",
+    "meanwhile", "today", "here", "there",
+    "let's", "lets", "let",
+    "we", "you", "they", "i", "he", "she",
+    "this", "that", "these", "those",
+    "if", "when", "while", "because", "but",
+    "first", "second", "third", "next",
+})
 
 
 def en_truncated(text: str) -> bool:
@@ -56,27 +74,45 @@ def en_truncated(text: str) -> bool:
     return t[-1] not in _SENT_END
 
 
+def _last_word(text: str) -> str:
+    parts = (text or "").strip().split()
+    if not parts:
+        return ""
+    return parts[-1].lower().strip("\"'(),;:")
+
+
+def _first_word(text: str) -> str:
+    parts = (text or "").strip().split()
+    if not parts:
+        return ""
+    return parts[0].lower().strip("\"'(),;:")
+
+
 def should_stitch(prev: str, curr: str) -> bool:
     """curr 是否更像 prev 被截断后的后半段，应拼在一起再翻译。"""
     prev = (prev or "").strip()
     curr = (curr or "").strip()
     if not prev or not curr or not en_truncated(prev):
         return False
-    last = prev.split()[-1].lower().strip("\"'(),;:")
+    last = _last_word(prev)
     if last in _HANGING_LAST:
         return True
     if curr[0].islower():
         return True
-    first = curr.split()[0].lower().strip("\"'(),;:")
-    return first in {"and", "or", "but", "because", "which", "that"}
+    first = _first_word(curr)
+    if first in {"and", "or", "but", "because", "which", "that"}:
+        return True
+    if last in _HANGING_WEAK:
+        return first not in _NEW_SENTENCE_START
+    return False
 
 
 def looks_cut(text: str) -> bool:
-    """更像被切窗腰斩（停在冠词/介词/be 动词），而不是只是 Whisper 没打句号。"""
+    """更像被切窗腰斩（停在虚词，或 first/next 这类短语前半），而不是只是 Whisper 没打句号。"""
     if not en_truncated(text):
         return False
-    last = (text or "").strip().split()[-1].lower().strip("\"'(),;:")
-    return last in _HANGING_LAST
+    last = _last_word(text)
+    return last in _HANGING_LAST or last in _HANGING_WEAK
 
 
 def join_en(*parts: str) -> str:
