@@ -2,7 +2,9 @@
 
 英文课用的本机桌面同传：麦克风进声，本地 Whisper 听英文，再译成中文。字幕、对照和录音都在你电脑上完成，不把录音送到云端识别。
 
-默认分支 `main` 是 **macOS 上课版**，也是大家该下载的版本：已经测过、能上课。**之后不会再往 `main` 里加作者自己后来做的功能**；笔记格式、自己想要的界面，在你电脑上的副本里改即可。Windows 请用 **`feat/windows`**（只换置顶/点穿、字体、启动器等系统壳，识别和翻译与 Mac 相同）。
+默认分支 `main` 是 **macOS 上课版**，也是大家该下载的版本：已经测过、能上课。**之后不会再往 `main` 里加作者自己后来做的功能**。Windows 请用 **`feat/windows`**（只换置顶/点穿、字体、启动器等系统壳，识别和翻译与 Mac 相同）。
+
+**这是按作者本人上课习惯做的，尤其是笔记。** 课节页 + 概念卡、Obsidian 路径、界面怎么摆，都是作者自己在用的那一套，不是标准答案。装好能上课之后，用 [WorkBuddy](https://www.codebuddy.cn/work/)（或其它本机 Agent）按你的习惯改本机副本：换笔记格式、接到自己的笔记库、加减按钮都可以。不要 `git push`，也不必等 `main` 更新。
 
 ## 课上长什么样
 
@@ -19,7 +21,7 @@
 | 课节管理 | 课程 / 课节、暂停与结束、打点、继续录制补到同一节 |
 | 回看 | 一句一块、双击回听、搜索、全文、导出 Markdown、压缩录音、重补失败译文 |
 | 术语表 | 课前手改或课后提取；喂给下一节课的识别和部分翻译，不是概念卡 |
-| 计入笔记 | 可选。DeepSeek 整理后写入 Obsidian：课节页 + 跨课概念卡。也可让 Agent 改成你自己的笔记库 |
+| 计入笔记 | 可选。默认按作者习惯写入 Obsidian（课节页 + 概念卡）。不合用就让 Agent 改成你自己的格式或笔记库 |
 
 不做：上课改某一句译文、自动识别中英切换、用现成 wav 当麦克风再跑一遍、做成「下载即用」的安装包。装的时候用本机助手（推荐 WorkBuddy），不要用网页里的云端 Agent。
 
@@ -69,7 +71,7 @@ flowchart LR
 
 笔记不是上课必需。只用同传、回看即可；不选 Obsidian 库，「计入笔记」写不进去，不影响录制。
 
-默认这一套走 DeepSeek，写入你的 Obsidian（和设置里的课堂翻译引擎无关）。结构不合适、想接自己的笔记库或别的工具：可以让 Agent 改仓库里的笔记模块，甚至整段换成你自己的落库。下面只说明**仓库自带**的路径。
+**默认笔记是作者本人的复习方式**（课节页记这堂怎么讲，概念卡跨课攒定义），不是通用模板。结构不合适、想换标题层级、接到自己的库或别的工具：装好后直接跟 WorkBuddy 说你想怎么记，让它改本机副本，不必等仓库更新。下面只说明**仓库自带、作者在用**的路径。
 
 ```mermaid
 flowchart LR
@@ -98,7 +100,7 @@ flowchart LR
 5. 其余交给 WorkBuddy：装依赖、写入 `.env`、启动，直到窗口能开；再对着麦克风说几句，确认字幕和译文在动。
 6. 能用之后，可再让它做一个启动程序放到「应用程序」（Mac）或用仓库里的 `.vbs` / `.bat`（Windows）。启动器只留在你电脑上，不要提交进 Git。
 
-笔记格式、自己想加的功能：在这份副本里让 WorkBuddy 改即可，**不必等 `main` 更新**。
+装好后请按自己的习惯定制，**特别是笔记**：跟 WorkBuddy 说你想怎么记、怎么排，它改的是你电脑上的副本，**不必等 `main` 更新**。
 
 不用助手、自己装：见 [docs/USAGE.md](docs/USAGE.md)。装好之后怎么点界面：见 [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)。Windows 系统壳：[docs/WINDOWS.md](https://github.com/rehtd/course-translate/blob/feat/windows/docs/WINDOWS.md)（在 `feat/windows` 分支）。
 
@@ -111,7 +113,7 @@ flowchart LR
 
 仓库：https://github.com/rehtd/course-translate.git
 分支：Windows 必须用 feat/windows（git clone -b feat/windows https://github.com/rehtd/course-translate.git）。macOS 用 main。main 是已测过的上课版，不要把作者未进 main 的功能当成仓库自带。
-范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。使用者若要改笔记格式或加自己的功能，只改本机副本，禁止 git push。
+范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。仓库默认体验按作者本人上课与笔记习惯设计，尤其是计入笔记。装好后按使用者习惯改本机副本（换笔记格式、接到自己的库都可以），禁止 git push。
 
 权威文档：
 1. docs/USAGE.md — 环境、依赖、密钥、启动、麦克风授权

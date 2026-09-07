@@ -4,7 +4,7 @@
 
 自己准备：macOS 13+（`main`）或 Windows 10/11（`feat/windows`）、Python 3.11+、至少一种翻译凭证。不要拷贝别人的 `.env` / `.venv` / `data/`。不要把 Key 发给助手：放到它创建的 `keys-inbox/` 里，**文件名写清哪家、哪一项**。上课任选一种即可；课后「计入笔记」才需要 DeepSeek。装好后它会带你测窗口能不能用；以后可再让它做一个启动程序放到「应用程序」。
 
-`main` 是已测过的上课版，作者不会再往里面加自己后来的功能。笔记格式、自己想要的功能，在本机副本里改即可。
+`main` 是已测过的上课版，作者不会再往里面加自己后来的功能。**默认界面和笔记是按作者本人习惯做的**（尤其是 Obsidian 课节页 + 概念卡）。不合用就让助手按你的方式改本机副本，不必等仓库更新。
 
 同一段也在 [README](../README.md)。改这一段时两处一起改。
 
@@ -15,7 +15,7 @@
 
 仓库：https://github.com/rehtd/course-translate.git
 分支：Windows 必须用 feat/windows（git clone -b feat/windows https://github.com/rehtd/course-translate.git）。macOS 用 main。main 是已测过的上课版，不要把作者未进 main 的功能当成仓库自带。
-范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。使用者若要改笔记格式或加自己的功能，只改本机副本，禁止 git push。
+范围：麦克风采集 → 本地 Whisper 识别 → 机器翻译 → 主窗口上英下中对照 + 底部英文悬浮字幕；课后可写入 Obsidian。feat/windows 只换系统壳，不要重写识别/翻译。仓库默认体验按作者本人上课与笔记习惯设计，尤其是计入笔记。装好后按使用者习惯改本机副本（换笔记格式、接到自己的库都可以），禁止 git push。
 
 权威文档：
 1. docs/USAGE.md — 环境、依赖、密钥、启动、麦克风授权
